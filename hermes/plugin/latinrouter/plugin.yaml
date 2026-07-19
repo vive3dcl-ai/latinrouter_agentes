@@ -1,0 +1,5 @@
+name: latinrouter
+kind: model-provider
+version: 1.0.0
+description: LatinRouter — gateway OpenAI-compatible para Latinoamérica
+author: LatinRouter
