@@ -53,6 +53,7 @@ Para cada producto en `latinrouter_agentes/<agente>/`:
 latinrouter_agentes/
 ├── README.md
 ├── docs/
+│   ├── install.md       # comandos de instalación por agente y distro
 │   ├── strategy.md      # este archivo
 │   ├── hermes.md
 │   ├── opencodex.md     # futuro

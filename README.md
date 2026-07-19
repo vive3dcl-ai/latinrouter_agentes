@@ -10,23 +10,16 @@ LatinRouter es **OpenAI-compatible** (`/v1`, `/v1/models`, chat completions). El
 
 | Agente | Estado | Instalación |
 |--------|--------|-------------|
-| [Hermes Agent](https://github.com/NousResearch/hermes-agent) | Listo (Linux / macOS / Windows) | ver abajo |
+| [Hermes Agent](https://github.com/NousResearch/hermes-agent) | Listo (Linux / macOS / Windows) | [docs/install.md](docs/install.md#hermes-agent) |
 | OpenCodex | Pendiente | — |
 | Claude Code | Pendiente | — |
 | OpenClaw | Pendiente | — |
 
-## Hermes — quickstart
+## Instalación (todos los agentes / distros)
 
-Un solo comando. El instalador:
+Comandos listos para copiar: **[docs/install.md](docs/install.md)**
 
-1. **Sin Hermes** → lo instala desde el instalador oficial de NousResearch  
-2. **Hermes desactualizado** → pregunta si actualizar (Enter = Sí)  
-3. **Hermes al día** → solo instala LatinRouter (silencioso)
-
-| Plataforma | Comando |
-|------------|---------|
-| Linux / macOS / WSL2 | one-liner abajo |
-| Windows nativo | one-liner PowerShell abajo |
+### Hermes — one-liner
 
 ```bash
 # Linux / macOS / WSL2
@@ -38,16 +31,10 @@ curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/mai
 iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/hermes/install.ps1)
 ```
 
-Luego:
+Luego: `hermes model` → LatinRouter (preseleccionado) → API key → `hermes`
 
-```bash
-hermes model    # elige LatinRouter → pega tu API key → modelos automáticos
-hermes          # chatea
-```
+Detalle: [docs/hermes.md](docs/hermes.md) · Key: [latinrouter.ai](https://latinrouter.ai)
 
-Key: [latinrouter.ai](https://latinrouter.ai)
-
-Documentación detallada: [docs/hermes.md](docs/hermes.md)
 
 ## Gateway
 
