@@ -210,8 +210,13 @@ echo "$(msg home "$CODEX_HOME")"
 
 if ! codex_available; then
   echo "$(msg no_bin)"
+  # Skip "Start Codex now?" and other prompts so our installer can continue.
+  export CODEX_NON_INTERACTIVE=1
   curl -fsSL "$OFFICIAL_INSTALL_URL" | sh
   refresh_path
+  # Standalone install puts binary in ~/.local/bin
+  export PATH="${HOME}/.local/bin:${HOME}/.codex/bin:${PATH}"
+  hash -r 2>/dev/null || true
   if ! codex_available; then
     echo "$(msg path_err)"
     exit 1

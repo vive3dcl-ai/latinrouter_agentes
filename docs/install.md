@@ -239,7 +239,7 @@ Instala (si hace falta) [Codex oficial](https://github.com/openai/codex) y regis
 
 | Situación | Comportamiento |
 |-----------|----------------|
-| Sin Codex | Instala desde `chatgpt.com/codex/install` |
+| Sin Codex | Instala desde `chatgpt.com/codex/install` (modo no interactivo: no lanza Codex al final) |
 | API key | Prompt → `~/.codex/secrets/latinrouter` |
 | Modelos | `GET /v1/models` → perfil `latinrouter` |
 | Gateway | Avisa si falta `POST /v1/responses` |

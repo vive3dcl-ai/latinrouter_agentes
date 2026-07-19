@@ -66,6 +66,7 @@ Write-Host (Get-Msg home -Args @($CodexHome))
 
 if (-not (Test-Codex)) {
     Write-Host (Get-Msg no_bin)
+    $env:CODEX_NON_INTERACTIVE = "1"
     try {
         iex (irm $OfficialInstallUrl)
     } catch {
