@@ -57,12 +57,12 @@ msg() {
         hermes_ok)           text="✓ Hermes instalado" ;;
         hermes_path_err)     text="ERROR: la instalación de Hermes terminó pero 'hermes' no está en el PATH." ;;
         hermes_path_hint)    text="Abre una terminal nueva y vuelve a ejecutar este script, o añade ~/.local/bin al PATH." ;;
-        update_ni)           text="==> Hermes está desactualizado — actualizando (modo no interactivo: Sí)" ;;
         update_prompt)       text="Hermes está desactualizado. ¿Actualizar ahora? [S/n] " ;;
         updating)            text="==> Actualizando Hermes…" ;;
         updated)             text="✓ Hermes actualizado" ;;
         update_fail)         text="ADVERTENCIA: falló 'hermes update' — se continúa con la instalación del proveedor LatinRouter" ;;
         skip_update)         text="==> Se omite la actualización de Hermes" ;;
+        no_tty_update)       text="==> No hay terminal interactiva; se omite la actualización de Hermes" ;;
         next_quiet)          text="Siguiente: hermes model  →  LatinRouter  →  pega tu API key  (%s)" ;;
         next_title)          text="Siguientes pasos:" ;;
         next_1)              text="  1. Obtén una API key en %s" ;;
@@ -85,12 +85,12 @@ msg() {
         hermes_ok)           text="✓ Hermes installed" ;;
         hermes_path_err)     text="ERROR: Hermes install finished but 'hermes' is not on PATH." ;;
         hermes_path_hint)    text="Open a new terminal and re-run this script, or add ~/.local/bin to PATH." ;;
-        update_ni)           text="==> Hermes is outdated — updating (non-interactive default: Yes)" ;;
         update_prompt)       text="Hermes is outdated. Update now? [Y/n] " ;;
         updating)            text="==> Updating Hermes…" ;;
         updated)             text="✓ Hermes updated" ;;
         update_fail)         text="WARNING: hermes update failed — continuing with LatinRouter provider install" ;;
         skip_update)         text="==> Skipping Hermes update" ;;
+        no_tty_update)       text="==> No interactive terminal; skipping Hermes update" ;;
         next_quiet)          text="Next: hermes model  →  LatinRouter  →  paste API key  (%s)" ;;
         next_title)          text="Next steps:" ;;
         next_1)              text="  1. Get an API key at %s" ;;
@@ -111,10 +111,6 @@ msg() {
 QUIET=0
 log()  { [[ "$QUIET" -eq 1 ]] || echo "$@"; }
 logf() { echo "$@"; }
-
-is_interactive() {
-  [[ -t 0 && -t 1 ]]
-}
 
 # ---------------------------------------------------------------------------
 # Resolve HERMES_HOME (match Hermes platform defaults)
@@ -339,16 +335,26 @@ hermes_update_available() {
 }
 
 prompt_update_hermes() {
-  local reply
+  # Always interactive. Blank answer = Yes.
+  local reply=""
   if [[ "${LATINROUTER_SKIP_HERMES_UPDATE:-}" == "1" ]]; then
     return 1
   fi
-  if ! is_interactive; then
-    logf "$(msg update_ni)"
-    return 0
+
+  if [[ -r /dev/tty && -w /dev/tty ]]; then
+    # Works even under `curl | bash` (stdin is the pipe; prompt on the real TTY)
+    printf '%s' "$(msg update_prompt)" > /dev/tty
+    IFS= read -r reply < /dev/tty || true
+  elif [[ -t 0 && -t 1 ]]; then
+    read -r -p "$(msg update_prompt)" reply || true
+  else
+    logf "$(msg no_tty_update)"
+    return 1
   fi
-  read -r -p "$(msg update_prompt)" reply || true
-  case "${reply:-Y}" in
+
+  # Empty / whitespace → Yes (default)
+  reply="$(printf '%s' "$reply" | tr -d '[:space:]')"
+  case "$reply" in
     n|N|no|NO) return 1 ;;
     *) return 0 ;;
   esac

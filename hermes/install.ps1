@@ -53,12 +53,13 @@ function Get-Msg {
         hermes_ok        = "✓ Hermes instalado"
         hermes_path_err  = "ERROR: la instalación de Hermes terminó pero 'hermes' no está en el PATH."
         hermes_path_hint = "Abre una ventana nueva de PowerShell y vuelve a ejecutar este script."
-        update_ni        = "==> Hermes está desactualizado — actualizando (modo no interactivo: Sí)"
+        update_ni        = "==> No hay terminal interactiva; se omite la actualización de Hermes"
         update_prompt    = "Hermes está desactualizado. ¿Actualizar ahora? [S/n]"
         updating         = "==> Actualizando Hermes…"
         updated          = "✓ Hermes actualizado"
         update_fail      = "ADVERTENCIA: falló 'hermes update' — se continúa con la instalación del proveedor LatinRouter"
         skip_update      = "==> Se omite la actualización de Hermes"
+        no_tty_update    = "==> No hay terminal interactiva; se omite la actualización de Hermes"
         next_quiet       = "Siguiente: hermes model  →  LatinRouter  →  pega tu API key  ({0})"
         next_title       = "Siguientes pasos:"
         next_1           = "  1. Obtén una API key en {0}"
@@ -78,12 +79,13 @@ function Get-Msg {
         hermes_ok        = "✓ Hermes installed"
         hermes_path_err  = "ERROR: Hermes install finished but 'hermes' is not on PATH."
         hermes_path_hint = "Open a new PowerShell window and re-run this script."
-        update_ni        = "==> Hermes is outdated — updating (non-interactive default: Yes)"
+        update_ni        = "==> No interactive terminal; skipping Hermes update"
         update_prompt    = "Hermes is outdated. Update now? [Y/n]"
         updating         = "==> Updating Hermes…"
         updated          = "✓ Hermes updated"
         update_fail      = "WARNING: hermes update failed — continuing with LatinRouter provider install"
         skip_update      = "==> Skipping Hermes update"
+        no_tty_update    = "==> No interactive terminal; skipping Hermes update"
         next_quiet       = "Next: hermes model  →  LatinRouter  →  paste API key  ({0})"
         next_title       = "Next steps:"
         next_1           = "  1. Get an API key at {0}"
@@ -341,16 +343,22 @@ function Test-HermesUpdateAvailable {
 }
 
 function Confirm-UpdateHermes {
+    # Always interactive. Blank answer = Yes.
     if ($env:LATINROUTER_SKIP_HERMES_UPDATE -eq "1") {
         return $false
     }
-    if (-not (Test-Interactive)) {
-        Write-LogAlways (Get-Msg update_ni)
+
+    try {
+        $reply = Read-Host (Get-Msg update_prompt)
+    } catch {
+        Write-LogAlways (Get-Msg no_tty_update)
+        return $false
+    }
+
+    if ([string]::IsNullOrWhiteSpace($reply)) {
         return $true
     }
-    $reply = Read-Host (Get-Msg update_prompt)
-    if ([string]::IsNullOrWhiteSpace($reply)) { return $true }
-    return ($reply -notmatch '^(n|no)$')
+    return ($reply.Trim() -notmatch '^(n|no)$')
 }
 
 function Update-Hermes {

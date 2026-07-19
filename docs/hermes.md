@@ -41,7 +41,7 @@ Discovery oficial: `$HERMES_HOME/plugins/model-providers/<name>/` (ver [Model Pr
 | Situación | Qué hace |
 |-----------|----------|
 | Hermes no instalado | Instala Hermes desde el instalador oficial (`hermes-agent.nousresearch.com`) con `--skip-setup` |
-| Hermes desactualizado | Pregunta: *¿Actualizar ahora? [Y/n]* — **default Sí** (en modo no interactivo también Sí). Luego instala el plugin |
+| Hermes desactualizado | Pregunta siempre: *¿Actualizar ahora? [S/n]* — Enter/vacío = **Sí**. Si no hay terminal, omite la actualización |
 | Hermes al día | Solo instala el proveedor LatinRouter (salida mínima) |
 
 Los mensajes del instalador salen en **español** o **inglés** automáticamente según el idioma de la consola (`LANG` / locale en Unix, UI culture en Windows). No hay que configurar nada.

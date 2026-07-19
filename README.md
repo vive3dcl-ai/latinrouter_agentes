@@ -20,7 +20,7 @@ LatinRouter es **OpenAI-compatible** (`/v1`, `/v1/models`, chat completions). El
 Un solo comando. El instalador:
 
 1. **Sin Hermes** → lo instala desde el instalador oficial de NousResearch  
-2. **Hermes desactualizado** → pregunta si actualizar (**default: Sí**)  
+2. **Hermes desactualizado** → pregunta si actualizar (Enter = Sí)  
 3. **Hermes al día** → solo instala LatinRouter (silencioso)
 
 | Plataforma | Comando |
