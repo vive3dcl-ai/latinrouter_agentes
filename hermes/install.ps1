@@ -53,7 +53,6 @@ function Get-Msg {
         hermes_ok        = "✓ Hermes instalado"
         hermes_path_err  = "ERROR: la instalación de Hermes terminó pero 'hermes' no está en el PATH."
         hermes_path_hint = "Abre una ventana nueva de PowerShell y vuelve a ejecutar este script."
-        update_ni        = "==> No hay terminal interactiva; se omite la actualización de Hermes"
         update_prompt    = "Hermes está desactualizado. ¿Actualizar ahora? [S/n]"
         updating         = "==> Actualizando Hermes…"
         updated          = "✓ Hermes actualizado"
@@ -79,7 +78,6 @@ function Get-Msg {
         hermes_ok        = "✓ Hermes installed"
         hermes_path_err  = "ERROR: Hermes install finished but 'hermes' is not on PATH."
         hermes_path_hint = "Open a new PowerShell window and re-run this script."
-        update_ni        = "==> No interactive terminal; skipping Hermes update"
         update_prompt    = "Hermes is outdated. Update now? [Y/n]"
         updating         = "==> Updating Hermes…"
         updated          = "✓ Hermes updated"
@@ -112,14 +110,6 @@ function Write-Log {
 function Write-LogAlways {
     param([string]$Message)
     Write-Host $Message
-}
-
-function Test-Interactive {
-    try {
-        return [Environment]::UserInteractive -and -not [Console]::IsInputRedirected
-    } catch {
-        return $false
-    }
 }
 
 function Get-HermesHome {
