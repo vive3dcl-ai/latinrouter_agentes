@@ -233,23 +233,68 @@ Docs: [openclaw.md](openclaw.md)
 
 ---
 
-## OpenCodex
+## OpenAI Codex
 
-Pendiente.
+Instala (si hace falta) [Codex oficial](https://github.com/openai/codex) y registra **LatinRouter** en `~/.codex/config.toml`.
+
+| Situación | Comportamiento |
+|-----------|----------------|
+| Sin Codex | Instala desde `chatgpt.com/codex/install` |
+| API key | Prompt → `~/.codex/secrets/latinrouter` |
+| Modelos | `GET /v1/models` → perfil `latinrouter` |
+| Gateway | Avisa si falta `POST /v1/responses` |
+
+### Linux / macOS / WSL2
 
 ```bash
-# (próximamente)
+curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/codex/install.sh | bash
 ```
+
+### Windows nativo (PowerShell)
+
+```powershell
+iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/codex/install.ps1)
+```
+
+### Después
+
+```bash
+codex --profile latinrouter
+```
+
+Docs: [codex.md](codex.md)
 
 ---
 
 ## Claude Code
 
-Pendiente.
+Instala (si hace falta) Claude Code y apunta LatinRouter en `~/.claude/settings.json`.
+
+| Situación | Comportamiento |
+|-----------|----------------|
+| Sin Claude Code | Instala desde `claude.ai/install` |
+| API key | Prompt → `ANTHROPIC_AUTH_TOKEN` en settings |
+| Gateway | Avisa si falta `POST /v1/messages` |
+
+### Linux / macOS / WSL2
 
 ```bash
-# (próximamente)
+curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/claudecode/install.sh | bash
 ```
+
+### Windows nativo (PowerShell)
+
+```powershell
+iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/claudecode/install.ps1)
+```
+
+### Después
+
+```bash
+claude
+```
+
+Docs: [claudecode.md](claudecode.md)
 
 ---
 
@@ -260,5 +305,5 @@ Pendiente.
 | **Hermes** | `curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/hermes/install.sh \| bash` | `iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/hermes/install.ps1)` |
 | **OpenCode** | `curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.sh \| bash` | `iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.ps1)` |
 | **OpenClaw** | `curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/openclaw/install.sh \| bash` | `iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/openclaw/install.ps1)` |
-| OpenCodex | — | — |
-| Claude Code | — | — |
+| **Codex** | `curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/codex/install.sh \| bash` | `iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/codex/install.ps1)` |
+| **Claude Code** | `curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/claudecode/install.sh \| bash` | `iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/claudecode/install.ps1)` |
