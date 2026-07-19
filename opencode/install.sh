@@ -254,9 +254,10 @@ write_embedded_plugin() {
 # ---------------------------------------------------------------------------
 merge_config() {
   local model_id="${1:-}"
-  python3 - "$CONFIG_FILE" "$PROVIDER_ID" "$DISPLAY_NAME" "$BASE_URL" "$model_id" <<'PY'
+  local models_csv="${2:-}"
+  python3 - "$CONFIG_FILE" "$PROVIDER_ID" "$DISPLAY_NAME" "$BASE_URL" "$model_id" "$models_csv" <<'PY'
 import json, sys, os
-path, pid, name, base, model_id = sys.argv[1:6]
+path, pid, name, base, model_id, models_csv = sys.argv[1:7]
 os.makedirs(os.path.dirname(path), exist_ok=True)
 data = {}
 if os.path.isfile(path):
@@ -273,6 +274,13 @@ if not isinstance(providers, dict):
     providers = {}
     data["provider"] = providers
 entry = providers.get(pid) if isinstance(providers.get(pid), dict) else {}
+models = entry.get("models") if isinstance(entry.get("models"), dict) else {}
+ids = [x for x in models_csv.split(",") if x] if models_csv else []
+if ids:
+    models = {**{i: {"name": i} for i in ids}, **models}
+elif not models:
+    # Seed model required: OpenCode drops providers with zero models from /connect
+    models = {pid: {"name": "LatinRouter (pega API key en /connect)"}}
 entry.update({
     "npm": "@ai-sdk/openai-compatible",
     "name": name,
@@ -281,6 +289,7 @@ entry.update({
         **(entry.get("options") if isinstance(entry.get("options"), dict) else {}),
         "baseURL": base,
     },
+    "models": models,
 })
 providers[pid] = entry
 if model_id:
@@ -314,7 +323,7 @@ with open(path, "w", encoding="utf-8") as f:
 PY
 }
 
-fetch_first_model() {
+fetch_models() {
   local key="$1"
   python3 - "$BASE_URL" "$key" <<'PY' 2>/dev/null || true
 import json, sys, urllib.request
@@ -334,6 +343,7 @@ if not ids:
     sys.exit(1)
 print(len(ids))
 print(ids[0])
+print(",".join(ids))
 PY
 }
 
@@ -404,13 +414,15 @@ echo "$(msg plugin_ok "$PLUGIN_DEST")"
 
 API_KEY="$(prompt_api_key)"
 DEFAULT_MODEL=""
+MODELS_CSV=""
 if [[ -n "$API_KEY" ]]; then
   save_auth_key "$API_KEY"
   echo "$(msg key_saved)"
-  fetched="$(fetch_first_model "$API_KEY" || true)"
+  fetched="$(fetch_models "$API_KEY" || true)"
   if [[ -n "$fetched" ]]; then
     count="$(printf '%s\n' "$fetched" | sed -n '1p')"
     DEFAULT_MODEL="$(printf '%s\n' "$fetched" | sed -n '2p')"
+    MODELS_CSV="$(printf '%s\n' "$fetched" | sed -n '3p')"
     echo "$(msg models_ok "$count" "$DEFAULT_MODEL")"
     save_model_state "$DEFAULT_MODEL"
   else
@@ -420,7 +432,7 @@ else
   echo "$(msg key_skip)"
 fi
 
-cfg_path="$(merge_config "$DEFAULT_MODEL")"
+cfg_path="$(merge_config "$DEFAULT_MODEL" "$MODELS_CSV")"
 echo "$(msg config_ok "$cfg_path")"
 
 echo ""

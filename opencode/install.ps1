@@ -235,14 +235,15 @@ function Invoke-JsonPython {
 }
 
 function Merge-Config {
-    param([string]$ConfigFile, [string]$ModelId)
+    param([string]$ConfigFile, [string]$ModelId, [string[]]$ModelIds = @())
     $dir = Split-Path $ConfigFile -Parent
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     $pyModel = if ($ModelId) { $ModelId } else { "" }
+    $pyIds = ($ModelIds -join ",")
     $code = @"
 import json, os
 path = r'$ConfigFile'
-pid, name, base, model_id = r'$ProviderId', r'$DisplayName', r'$BaseUrl', r'$pyModel'
+pid, name, base, model_id, models_csv = r'$ProviderId', r'$DisplayName', r'$BaseUrl', r'$pyModel', r'$pyIds'
 os.makedirs(os.path.dirname(path), exist_ok=True)
 data = {}
 if os.path.isfile(path):
@@ -260,7 +261,13 @@ if not isinstance(providers, dict):
 entry = providers.get(pid) if isinstance(providers.get(pid), dict) else {}
 opts = entry.get('options') if isinstance(entry.get('options'), dict) else {}
 opts['baseURL'] = base
-entry.update({'npm': '@ai-sdk/openai-compatible', 'name': name, 'env': ['LATINROUTER_API_KEY'], 'options': opts})
+models = entry.get('models') if isinstance(entry.get('models'), dict) else {}
+ids = [x for x in models_csv.split(',') if x]
+if ids:
+    models = {**{i: {'name': i} for i in ids}, **models}
+elif not models:
+    models = {pid: {'name': 'LatinRouter (pega API key en /connect)'}}
+entry.update({'npm': '@ai-sdk/openai-compatible', 'name': name, 'env': ['LATINROUTER_API_KEY'], 'options': opts, 'models': models})
 providers[pid] = entry
 if model_id:
     data['model'] = f'{pid}/{model_id}'
@@ -269,7 +276,6 @@ with open(path, 'w', encoding='utf-8') as f:
     f.write('\n')
 "@
     if (Invoke-JsonPython -Code $code) { return $ConfigFile }
-    # Fallback: merge with PSCustomObject (Windows PowerShell 5.1)
     $root = $null
     if (Test-Path $ConfigFile) {
         try { $root = Get-Content $ConfigFile -Raw | ConvertFrom-Json } catch { $root = $null }
@@ -281,11 +287,18 @@ with open(path, 'w', encoding='utf-8') as f:
     if (-not $root.PSObject.Properties['provider'] -or -not $root.provider) {
         $root | Add-Member -NotePropertyName 'provider' -NotePropertyValue ([pscustomobject]@{}) -Force
     }
+    $modelMap = [ordered]@{}
+    if ($ModelIds -and $ModelIds.Count -gt 0) {
+        foreach ($id in $ModelIds) { $modelMap[$id] = @{ name = $id } }
+    } else {
+        $modelMap[$ProviderId] = @{ name = "LatinRouter (pega API key en /connect)" }
+    }
     $entry = [pscustomobject]@{
         npm     = '@ai-sdk/openai-compatible'
         name    = $DisplayName
         env     = @('LATINROUTER_API_KEY')
         options = [pscustomobject]@{ baseURL = $BaseUrl }
+        models  = [pscustomobject]$modelMap
     }
     $root.provider | Add-Member -NotePropertyName $ProviderId -NotePropertyValue $entry -Force
     if ($ModelId) {
@@ -335,7 +348,7 @@ function Get-FirstModel {
         $items = if ($resp.data) { $resp.data } else { $resp }
         $ids = @($items | ForEach-Object { $_.id } | Where-Object { $_ })
         if ($ids.Count -eq 0) { return $null }
-        return @{ Count = $ids.Count; First = $ids[0] }
+        return @{ Count = $ids.Count; First = $ids[0]; Ids = $ids }
     } catch {
         return $null
     }
@@ -391,12 +404,14 @@ try {
 $apiKey = if ($apiKey) { $apiKey.Trim() } else { "" }
 
 $defaultModel = ""
+$modelIds = @()
 if ($apiKey) {
     Save-AuthKey -AuthFile $AuthFile -Key $apiKey
     Write-Host (Get-Msg key_saved)
     $fetched = Get-FirstModel -Key $apiKey
     if ($fetched) {
         $defaultModel = $fetched.First
+        $modelIds = @($fetched.Ids)
         Write-Host (Get-Msg models_ok -Args @($fetched.Count, $defaultModel))
         Save-ModelState -StateFile $ModelState -ModelId $defaultModel
     } else {
@@ -406,7 +421,7 @@ if ($apiKey) {
     Write-Host (Get-Msg key_skip)
 }
 
-$cfgPath = Merge-Config -ConfigFile $ConfigFile -ModelId $defaultModel
+$cfgPath = Merge-Config -ConfigFile $ConfigFile -ModelId $defaultModel -ModelIds $modelIds
 Write-Host (Get-Msg config_ok -Args @($cfgPath))
 
 Write-Host ""

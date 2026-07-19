@@ -115,6 +115,9 @@ El instalador escribe (merge no destructivo) algo equivalente a:
       "env": ["LATINROUTER_API_KEY"],
       "options": {
         "baseURL": "https://llm.latinrouter.ai/v1"
+      },
+      "models": {
+        "latinrouter": { "name": "LatinRouter (pega API key en /connect)" }
       }
     }
   }
@@ -127,16 +130,28 @@ Otras keys y providers del usuario se conservan.
 
 | Objetivo | Estado |
 |----------|--------|
-| Nombrado en `/connect` | Sí (plugin `auth`) |
-| Modelos live del gateway | Sí (`provider.models`) |
+| Nombrado en `/connect` | Sí — requiere ≥1 modelo en config (el plugin/instalador lo siembra) |
+| Modelos live del gateway | Sí — hook `config` + `/v1/models` cuando hay key |
 | Modelo por defecto LatinRouter | Sí (`model` + state si hay key) |
-| Primero en sección Popular de `/connect` | No sin cambiar OpenCode upstream |
+| Primero en sección **Popular** de `/connect` | **No** sin PR a OpenCode (`PROVIDER_PRIORITY` está hardcodeado: opencode, openai, anthropic, …) |
+
+Tras reinstalar/actualizar el plugin, reinicia OpenCode. LatinRouter aparece en la sección **Providers** (no Popular). Para conectar la key: `/connect` → LatinRouter.
+
+### Workaround inmediato (si aún no lo ves)
+
+```bash
+# Reinstala plugin + config con modelo seed
+curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.sh | bash
+# reinicia opencode → /connect → busca LatinRouter en Providers
+```
+
+O vía CLI: `opencode providers login --provider latinrouter`
 
 ## Troubleshooting
 
 | Problema | Qué revisar |
 |----------|-------------|
-| LatinRouter no sale en `/connect` | Que exista `plugins/latinrouter.js` y reiniciar OpenCode |
+| LatinRouter no sale en `/connect` | Reinstalar (necesita `models` en config), reiniciar OpenCode; debe estar en **Providers**, no en Popular |
 | Sin modelos en `/models` | API key en auth o `LATINROUTER_API_KEY`; probar `curl -H "Authorization: Bearer $KEY" https://llm.latinrouter.ai/v1/models` |
 | `opencode` no encontrado tras instalar | Abrir terminal nueva (PATH); en Windows: scoop/npm/choco |
 | Config sobrescrita | El merge solo toca `provider.latinrouter` y opcionalmente `model`; reportar si se pierde otra key |
