@@ -6,6 +6,9 @@
 #   2. Hermes outdated      → ask to update (default: Yes), then install plugin
 #   3. Hermes up to date    → install LatinRouter provider quietly
 #
+# Language: auto from LANG/LC_* (es → Spanish, else English).
+# Override: LATINROUTER_LANG=es|en
+#
 # Platforms:
 #   Linux / macOS / WSL2  → this script  (HERMES_HOME=~/.hermes)
 #   Windows native        → hermes/install.ps1
@@ -20,10 +23,103 @@ BASE_URL="https://llm.latinrouter.ai/v1"
 SIGNUP_URL="https://latinrouter.ai"
 OFFICIAL_INSTALL_URL="https://hermes-agent.nousresearch.com/install.sh"
 
+# ---------------------------------------------------------------------------
+# i18n
+# ---------------------------------------------------------------------------
+detect_lang() {
+  local override="${LATINROUTER_LANG:-}"
+  if [[ -n "$override" ]]; then
+    override="$(printf '%s' "$override" | tr '[:upper:]' '[:lower:]')"
+    case "$override" in
+      es|es_*|spanish|español|espanol) echo es; return ;;
+      en|en_*|english) echo en; return ;;
+    esac
+  fi
+  local loc="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
+  loc="$(printf '%s' "$loc" | tr '[:upper:]' '[:lower:]')"
+  case "$loc" in
+    es|es_*|*.es|*.es_*|*es_es*|*es_mx*|*es_ar*|*es_co*|*es_cl*|*es_pe*|*es_ve*|*es_uy*|*es_py*|*es_bo*|*es_ec*|*es_cr*|*es_pa*|*es_gt*|*es_hn*|*es_sv*|*es_ni*|*es_do*|*es_pr*|*es_cu*)
+      echo es
+      ;;
+    *)
+      echo en
+      ;;
+  esac
+}
+
+LR_LANG="$(detect_lang)"
+
+# msg KEY [printf args...]
+msg() {
+  local key="$1"
+  shift || true
+  local text=""
+  case "$LR_LANG" in
+    es)
+      case "$key" in
+        banner)              text="==> LatinRouter + Hermes" ;;
+        home)                text="    HERMES_HOME=%s" ;;
+        checking)            text="==> Comprobando versión de Hermes…" ;;
+        install_provider)    text="==> Instalando proveedor LatinRouter" ;;
+        provider_ok)         text="✓ Proveedor LatinRouter instalado → %s" ;;
+        hermes_missing)      text="==> Hermes no encontrado — instalando desde el instalador oficial" ;;
+        hermes_ok)           text="✓ Hermes instalado" ;;
+        hermes_path_err)     text="ERROR: la instalación de Hermes terminó pero 'hermes' no está en el PATH." ;;
+        hermes_path_hint)    text="Abre una terminal nueva y vuelve a ejecutar este script, o añade ~/.local/bin al PATH." ;;
+        update_ni)           text="==> Hermes está desactualizado — actualizando (modo no interactivo: Sí)" ;;
+        update_prompt)       text="Hermes está desactualizado. ¿Actualizar ahora? [S/n] " ;;
+        updating)            text="==> Actualizando Hermes…" ;;
+        updated)             text="✓ Hermes actualizado" ;;
+        update_fail)         text="ADVERTENCIA: falló 'hermes update' — se continúa con la instalación del proveedor LatinRouter" ;;
+        skip_update)         text="==> Se omite la actualización de Hermes" ;;
+        next_quiet)          text="Siguiente: hermes model  →  LatinRouter  →  pega tu API key  (%s)" ;;
+        next_title)          text="Siguientes pasos:" ;;
+        next_1)              text="  1. Obtén una API key en %s" ;;
+        next_2)              text="  2. Ejecuta:  hermes model" ;;
+        next_3)              text="  3. Elige: LatinRouter" ;;
+        next_4)              text="  4. Pega tu LATINROUTER_API_KEY cuando te la pida" ;;
+        next_5)              text="  5. Los modelos se cargan solos desde %s/models" ;;
+        next_6)              text="  6. Empieza a chatear:  hermes" ;;
+        *)                   text="$key" ;;
+      esac
+      ;;
+    *)
+      case "$key" in
+        banner)              text="==> LatinRouter + Hermes" ;;
+        home)                text="    HERMES_HOME=%s" ;;
+        checking)            text="==> Checking Hermes version…" ;;
+        install_provider)    text="==> Installing LatinRouter provider" ;;
+        provider_ok)         text="✓ LatinRouter provider installed → %s" ;;
+        hermes_missing)      text="==> Hermes not found — installing from official installer" ;;
+        hermes_ok)           text="✓ Hermes installed" ;;
+        hermes_path_err)     text="ERROR: Hermes install finished but 'hermes' is not on PATH." ;;
+        hermes_path_hint)    text="Open a new terminal and re-run this script, or add ~/.local/bin to PATH." ;;
+        update_ni)           text="==> Hermes is outdated — updating (non-interactive default: Yes)" ;;
+        update_prompt)       text="Hermes is outdated. Update now? [Y/n] " ;;
+        updating)            text="==> Updating Hermes…" ;;
+        updated)             text="✓ Hermes updated" ;;
+        update_fail)         text="WARNING: hermes update failed — continuing with LatinRouter provider install" ;;
+        skip_update)         text="==> Skipping Hermes update" ;;
+        next_quiet)          text="Next: hermes model  →  LatinRouter  →  paste API key  (%s)" ;;
+        next_title)          text="Next steps:" ;;
+        next_1)              text="  1. Get an API key at %s" ;;
+        next_2)              text="  2. Run:  hermes model" ;;
+        next_3)              text="  3. Select: LatinRouter" ;;
+        next_4)              text="  4. Paste your LATINROUTER_API_KEY when prompted" ;;
+        next_5)              text="  5. Models load automatically from %s/models" ;;
+        next_6)              text="  6. Start chatting:  hermes" ;;
+        *)                   text="$key" ;;
+      esac
+      ;;
+  esac
+  # shellcheck disable=SC2059
+  printf "$text" "$@"
+}
+
 # Quiet when Hermes is already current (plugin-only path)
 QUIET=0
 log()  { [[ "$QUIET" -eq 1 ]] || echo "$@"; }
-logf() { echo "$@"; }  # always print (errors / final status)
+logf() { echo "$@"; }
 
 is_interactive() {
   [[ -t 0 && -t 1 ]]
@@ -55,7 +151,6 @@ resolve_hermes_home() {
 HERMES_HOME="$(resolve_hermes_home)"
 export HERMES_HOME
 
-# Ensure common Hermes bin dirs are on PATH (fresh install / new shell)
 refresh_path() {
   export PATH="${HOME}/.local/bin:/usr/local/bin:${PATH}"
   hash -r 2>/dev/null || true
@@ -148,35 +243,32 @@ install_plugin() {
   rm -rf "$dest"
   mkdir -p "$dest"
 
+  log "$(msg install_provider)"
   if [[ -n "$PLUGIN_SRC" ]]; then
-    log "==> Installing LatinRouter provider"
     cp -a "$PLUGIN_SRC/." "$dest/"
   else
-    log "==> Installing LatinRouter provider"
     write_embedded_plugin "$dest"
   fi
-
-  logf "✓ LatinRouter provider installed → $dest"
+  logf "$(msg provider_ok "$dest")"
 }
 
 install_hermes_official() {
-  logf "==> Hermes not found — installing from official installer"
+  logf "$(msg hermes_missing)"
   logf "    $OFFICIAL_INSTALL_URL"
   curl -fsSL "$OFFICIAL_INSTALL_URL" | bash -s -- --skip-setup
   refresh_path
   if ! hermes_available; then
-    logf "ERROR: Hermes install finished but 'hermes' is not on PATH."
-    logf "Open a new terminal and re-run this script, or add ~/.local/bin to PATH."
+    logf "$(msg hermes_path_err)"
+    logf "$(msg hermes_path_hint)"
     exit 1
   fi
-  logf "✓ Hermes installed"
+  logf "$(msg hermes_ok)"
 }
 
-# Returns 0 if update available, 1 if up to date, 2 if check failed
+# Returns 0 if update available, 1 if up to date
 hermes_update_available() {
   local out
   if ! out="$(hermes update --check 2>&1)"; then
-    # Some builds still print useful text on non-zero; fall through to parse
     :
   fi
   if printf '%s\n' "$out" | grep -qiE 'Update available|behind'; then
@@ -186,21 +278,19 @@ hermes_update_available() {
   if printf '%s\n' "$out" | grep -qiE 'Already up to date|up to date'; then
     return 1
   fi
-  # Ambiguous — treat as up to date to avoid surprising full upgrades
   return 1
 }
 
 prompt_update_hermes() {
-  # Default Yes. Non-interactive → Yes.
   local reply
   if [[ "${LATINROUTER_SKIP_HERMES_UPDATE:-}" == "1" ]]; then
     return 1
   fi
   if ! is_interactive; then
-    logf "==> Hermes is outdated — updating (non-interactive default: Yes)"
+    logf "$(msg update_ni)"
     return 0
   fi
-  read -r -p "Hermes está desactualizado. ¿Actualizar ahora? [Y/n] " reply || true
+  read -r -p "$(msg update_prompt)" reply || true
   case "${reply:-Y}" in
     n|N|no|NO) return 1 ;;
     *) return 0 ;;
@@ -208,29 +298,26 @@ prompt_update_hermes() {
 }
 
 update_hermes() {
-  logf "==> Updating Hermes…"
-  # -y skips interactive migrate prompts; API keys are not wiped
+  logf "$(msg updating)"
   if hermes update -y; then
     refresh_path
-    logf "✓ Hermes updated"
+    logf "$(msg updated)"
   else
-    logf "WARNING: hermes update failed — continuing with LatinRouter provider install"
+    logf "$(msg update_fail)"
   fi
 }
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-log "==> LatinRouter + Hermes"
-log "    HERMES_HOME=$HERMES_HOME"
+log "$(msg banner)"
+log "$(msg home "$HERMES_HOME")"
 
-# 1) Ensure Hermes exists
 if ! hermes_available; then
   install_hermes_official
   QUIET=0
 else
-  # 2) Check for updates
-  log "==> Checking Hermes version…"
+  log "$(msg checking)"
   set +e
   hermes_update_available
   status=$?
@@ -241,36 +328,32 @@ else
         update_hermes
         QUIET=0
       else
-        log "==> Skipping Hermes update"
+        log "$(msg skip_update)"
         QUIET=0
       fi
       ;;
     *)
-      # Up to date (or check inconclusive) → quiet plugin-only install
       QUIET=1
       ;;
   esac
 fi
 
-# Re-resolve home after possible Hermes install (may create ~/.hermes)
 HERMES_HOME="$(resolve_hermes_home)"
 export HERMES_HOME
 mkdir -p "$HERMES_HOME"
 
-# 3) Install LatinRouter provider
 install_plugin
 
 if [[ "$QUIET" -eq 1 ]]; then
-  # Minimal next-step hint even in quiet mode
-  logf "Next: hermes model  →  LatinRouter  →  paste API key  ($SIGNUP_URL)"
+  logf "$(msg next_quiet "$SIGNUP_URL")"
 else
   echo ""
-  echo "Next steps:"
-  echo "  1. Get an API key at $SIGNUP_URL"
-  echo "  2. Run:  hermes model"
-  echo "  3. Select: LatinRouter"
-  echo "  4. Paste your LATINROUTER_API_KEY when prompted"
-  echo "  5. Models load automatically from $BASE_URL/models"
-  echo "  6. Start chatting:  hermes"
+  echo "$(msg next_title)"
+  echo "$(msg next_1 "$SIGNUP_URL")"
+  echo "$(msg next_2)"
+  echo "$(msg next_3)"
+  echo "$(msg next_4)"
+  echo "$(msg next_5 "$BASE_URL")"
+  echo "$(msg next_6)"
   echo ""
 fi

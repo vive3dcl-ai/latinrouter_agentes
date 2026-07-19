@@ -5,6 +5,9 @@
 #   2. Hermes outdated      → ask to update (default: Yes), then install plugin
 #   3. Hermes up to date    → install LatinRouter provider quietly
 #
+# Language: auto from UI culture (es → Spanish, else English).
+# Override: $env:LATINROUTER_LANG = "es" | "en"
+#
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File hermes\install.ps1
 #   iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/hermes/install.ps1)
@@ -19,6 +22,92 @@ $BaseUrl = "https://llm.latinrouter.ai/v1"
 $SignupUrl = "https://latinrouter.ai"
 $OfficialInstallUrl = "https://hermes-agent.nousresearch.com/install.ps1"
 $script:Quiet = $false
+
+function Get-InstallLang {
+    $override = $env:LATINROUTER_LANG
+    if ($override) {
+        $o = $override.Trim().ToLowerInvariant()
+        if ($o -match '^(es|spanish|español|espanol)' -or $o.StartsWith("es")) { return "es" }
+        if ($o -match '^(en|english)' -or $o.StartsWith("en")) { return "en" }
+    }
+    try {
+        $culture = [System.Globalization.CultureInfo]::CurrentUICulture
+        if ($culture.TwoLetterISOLanguageName -eq "es") { return "es" }
+        if ($culture.Name -match '^es') { return "es" }
+    } catch {}
+    try {
+        $culture = Get-Culture
+        if ($culture.TwoLetterISOLanguageName -eq "es") { return "es" }
+    } catch {}
+    if ($env:LANG -match '(?i)^es') { return "es" }
+    return "en"
+}
+
+$script:Lang = Get-InstallLang
+
+function Get-Msg {
+    param(
+        [Parameter(Mandatory = $true)][string]$Key,
+        [object[]]$Args = @()
+    )
+    $mapEs = @{
+        banner           = "==> LatinRouter + Hermes (Windows)"
+        home             = "    HERMES_HOME={0}"
+        checking         = "==> Comprobando versión de Hermes…"
+        install_provider = "==> Instalando proveedor LatinRouter"
+        provider_ok      = "✓ Proveedor LatinRouter instalado → {0}"
+        hermes_missing   = "==> Hermes no encontrado — instalando desde el instalador oficial"
+        hermes_ok        = "✓ Hermes instalado"
+        hermes_path_err  = "ERROR: la instalación de Hermes terminó pero 'hermes' no está en el PATH."
+        hermes_path_hint = "Abre una ventana nueva de PowerShell y vuelve a ejecutar este script."
+        update_ni        = "==> Hermes está desactualizado — actualizando (modo no interactivo: Sí)"
+        update_prompt    = "Hermes está desactualizado. ¿Actualizar ahora? [S/n]"
+        updating         = "==> Actualizando Hermes…"
+        updated          = "✓ Hermes actualizado"
+        update_fail      = "ADVERTENCIA: falló 'hermes update' — se continúa con la instalación del proveedor LatinRouter"
+        skip_update      = "==> Se omite la actualización de Hermes"
+        next_quiet       = "Siguiente: hermes model  →  LatinRouter  →  pega tu API key  ({0})"
+        next_title       = "Siguientes pasos:"
+        next_1           = "  1. Obtén una API key en {0}"
+        next_2           = "  2. Ejecuta:  hermes model"
+        next_3           = "  3. Elige: LatinRouter"
+        next_4           = "  4. Pega tu LATINROUTER_API_KEY cuando te la pida"
+        next_5           = "  5. Los modelos se cargan solos desde {0}/models"
+        next_6           = "  6. Empieza a chatear:  hermes"
+    }
+    $mapEn = @{
+        banner           = "==> LatinRouter + Hermes (Windows)"
+        home             = "    HERMES_HOME={0}"
+        checking         = "==> Checking Hermes version…"
+        install_provider = "==> Installing LatinRouter provider"
+        provider_ok      = "✓ LatinRouter provider installed → {0}"
+        hermes_missing   = "==> Hermes not found — installing from official installer"
+        hermes_ok        = "✓ Hermes installed"
+        hermes_path_err  = "ERROR: Hermes install finished but 'hermes' is not on PATH."
+        hermes_path_hint = "Open a new PowerShell window and re-run this script."
+        update_ni        = "==> Hermes is outdated — updating (non-interactive default: Yes)"
+        update_prompt    = "Hermes is outdated. Update now? [Y/n]"
+        updating         = "==> Updating Hermes…"
+        updated          = "✓ Hermes updated"
+        update_fail      = "WARNING: hermes update failed — continuing with LatinRouter provider install"
+        skip_update      = "==> Skipping Hermes update"
+        next_quiet       = "Next: hermes model  →  LatinRouter  →  paste API key  ({0})"
+        next_title       = "Next steps:"
+        next_1           = "  1. Get an API key at {0}"
+        next_2           = "  2. Run:  hermes model"
+        next_3           = "  3. Select: LatinRouter"
+        next_4           = "  4. Paste your LATINROUTER_API_KEY when prompted"
+        next_5           = "  5. Models load automatically from {0}/models"
+        next_6           = "  6. Start chatting:  hermes"
+    }
+    $map = if ($script:Lang -eq "es") { $mapEs } else { $mapEn }
+    $fmt = $map[$Key]
+    if (-not $fmt) { return $Key }
+    if ($Args.Count -gt 0) {
+        return ($fmt -f $Args)
+    }
+    return $fmt
+}
 
 function Write-Log {
     param([string]$Message)
@@ -148,17 +237,17 @@ function Install-LatinRouterPlugin {
         Remove-Item -Recurse -Force $Dest
     }
 
-    Write-Log "==> Installing LatinRouter provider"
+    Write-Log (Get-Msg install_provider)
     if ($PluginSrc) {
         Copy-Item -Recurse -Force $PluginSrc $Dest
     } else {
         Write-EmbeddedPlugin -Dest $Dest
     }
-    Write-LogAlways "✓ LatinRouter provider installed → $Dest"
+    Write-LogAlways (Get-Msg provider_ok -Args @($Dest))
 }
 
 function Install-HermesOfficial {
-    Write-LogAlways "==> Hermes not found — installing from official installer"
+    Write-LogAlways (Get-Msg hermes_missing)
     Write-LogAlways "    $OfficialInstallUrl"
     $tmp = Join-Path ([System.IO.Path]::GetTempPath()) "hermes-official-install.ps1"
     Invoke-WebRequest -Uri $OfficialInstallUrl -OutFile $tmp -UseBasicParsing
@@ -169,15 +258,14 @@ function Install-HermesOfficial {
     }
     Refresh-Path
     if (-not (Test-HermesAvailable)) {
-        Write-LogAlways "ERROR: Hermes install finished but 'hermes' is not on PATH."
-        Write-LogAlways "Open a new PowerShell window and re-run this script."
+        Write-LogAlways (Get-Msg hermes_path_err)
+        Write-LogAlways (Get-Msg hermes_path_hint)
         exit 1
     }
-    Write-LogAlways "✓ Hermes installed"
+    Write-LogAlways (Get-Msg hermes_ok)
 }
 
 function Test-HermesUpdateAvailable {
-    # Returns: 'available' | 'current' | 'unknown'
     Refresh-Path
     try {
         $out = & hermes update --check 2>&1 | Out-String
@@ -188,9 +276,6 @@ function Test-HermesUpdateAvailable {
         ($out -split "`n" | Where-Object { $_ -match '(?i)Update available|behind' } | Select-Object -First 5) | ForEach-Object { Write-Host $_ }
         return 'available'
     }
-    if ($out -match '(?i)Already up to date|up to date') {
-        return 'current'
-    }
     return 'current'
 }
 
@@ -199,22 +284,22 @@ function Confirm-UpdateHermes {
         return $false
     }
     if (-not (Test-Interactive)) {
-        Write-LogAlways "==> Hermes is outdated — updating (non-interactive default: Yes)"
+        Write-LogAlways (Get-Msg update_ni)
         return $true
     }
-    $reply = Read-Host "Hermes está desactualizado. ¿Actualizar ahora? [Y/n]"
+    $reply = Read-Host (Get-Msg update_prompt)
     if ([string]::IsNullOrWhiteSpace($reply)) { return $true }
     return ($reply -notmatch '^(n|no)$')
 }
 
 function Update-Hermes {
-    Write-LogAlways "==> Updating Hermes…"
+    Write-LogAlways (Get-Msg updating)
     try {
         & hermes update -y
         Refresh-Path
-        Write-LogAlways "✓ Hermes updated"
+        Write-LogAlways (Get-Msg updated)
     } catch {
-        Write-LogAlways "WARNING: hermes update failed — continuing with LatinRouter provider install"
+        Write-LogAlways (Get-Msg update_fail)
     }
 }
 
@@ -222,21 +307,21 @@ function Update-Hermes {
 # Main
 # ---------------------------------------------------------------------------
 $HermesHome = Get-HermesHome
-Write-Log "==> LatinRouter + Hermes (Windows)"
-Write-Log "    HERMES_HOME=$HermesHome"
+Write-Log (Get-Msg banner)
+Write-Log (Get-Msg home -Args @($HermesHome))
 
 if (-not (Test-HermesAvailable)) {
     Install-HermesOfficial
     $script:Quiet = $false
 } else {
-    Write-Log "==> Checking Hermes version…"
+    Write-Log (Get-Msg checking)
     $status = Test-HermesUpdateAvailable
     if ($status -eq 'available') {
         if (Confirm-UpdateHermes) {
             Update-Hermes
             $script:Quiet = $false
         } else {
-            Write-Log "==> Skipping Hermes update"
+            Write-Log (Get-Msg skip_update)
             $script:Quiet = $false
         }
     } else {
@@ -249,15 +334,15 @@ New-Item -ItemType Directory -Force -Path $HermesHome | Out-Null
 Install-LatinRouterPlugin -HermesHome $HermesHome
 
 if ($script:Quiet) {
-    Write-LogAlways "Next: hermes model  →  LatinRouter  →  paste API key  ($SignupUrl)"
+    Write-LogAlways (Get-Msg next_quiet -Args @($SignupUrl))
 } else {
     Write-Host ""
-    Write-Host "Next steps:"
-    Write-Host "  1. Get an API key at $SignupUrl"
-    Write-Host "  2. Run:  hermes model"
-    Write-Host "  3. Select: LatinRouter"
-    Write-Host "  4. Paste your LATINROUTER_API_KEY when prompted"
-    Write-Host "  5. Models load automatically from $BaseUrl/models"
-    Write-Host "  6. Start chatting:  hermes"
+    Write-Host (Get-Msg next_title)
+    Write-Host (Get-Msg next_1 -Args @($SignupUrl))
+    Write-Host (Get-Msg next_2)
+    Write-Host (Get-Msg next_3)
+    Write-Host (Get-Msg next_4)
+    Write-Host (Get-Msg next_5 -Args @($BaseUrl))
+    Write-Host (Get-Msg next_6)
     Write-Host ""
 }

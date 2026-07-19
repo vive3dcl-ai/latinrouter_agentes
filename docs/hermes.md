@@ -44,7 +44,10 @@ Discovery oficial: `$HERMES_HOME/plugins/model-providers/<name>/` (ver [Model Pr
 | Hermes desactualizado | Pregunta: *¿Actualizar ahora? [Y/n]* — **default Sí** (en modo no interactivo también Sí). Luego instala el plugin |
 | Hermes al día | Solo instala el proveedor LatinRouter (salida mínima) |
 
+Para forzar idioma: `LATINROUTER_LANG=es` o `LATINROUTER_LANG=en`.
 Para no actualizar Hermes aunque esté desactualizado: `LATINROUTER_SKIP_HERMES_UPDATE=1`.
+
+Los mensajes del instalador se muestran en **español** o **inglés** según el idioma de la consola (`LANG` / locale en Unix, UI culture en Windows).
 
 ## Instalación del proveedor LatinRouter
 
