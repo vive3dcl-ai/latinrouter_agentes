@@ -5,6 +5,7 @@ Plugin de proveedor para [Hermes Agent](https://github.com/NousResearch/hermes-a
 | Campo | Valor |
 |-------|--------|
 | Provider id | `latinrouter` |
+| Descripción | Gateway IA Centralizado para Latinoamérica |
 | Base URL | `https://llm.latinrouter.ai/v1` |
 | Modelos | `GET /v1/models` (automático tras ingresar la key) |
 | API key env | `LATINROUTER_API_KEY` |

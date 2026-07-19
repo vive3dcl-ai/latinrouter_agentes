@@ -11,15 +11,24 @@ HERMES_HOME defaults:
   Windows native       → %LOCALAPPDATA%\\hermes
 """
 
+from __future__ import annotations
+
+import sys
+import threading
+import time
+
 from providers import register_provider
 from providers.base import ProviderProfile
+
+_DISPLAY_NAME = "LatinRouter"
+_DESCRIPTION = "Gateway IA Centralizado para Latinoamérica"
 
 latinrouter = ProviderProfile(
     name="latinrouter",
     aliases=("latin-router", "lr"),
     env_vars=("LATINROUTER_API_KEY", "LATINROUTER_BASE_URL"),
-    display_name="LatinRouter",
-    description="LatinRouter — gateway OpenAI-compatible para Latinoamérica",
+    display_name=_DISPLAY_NAME,
+    description=_DESCRIPTION,
     signup_url="https://latinrouter.ai",
     base_url="https://llm.latinrouter.ai/v1",
     models_url="https://llm.latinrouter.ai/v1/models",
@@ -31,3 +40,57 @@ latinrouter = ProviderProfile(
 )
 
 register_provider(latinrouter)
+
+
+def _ensure_latinrouter_first() -> bool:
+    """Move LatinRouter to index 0 in ``CANONICAL_PROVIDERS`` when present."""
+    mod = sys.modules.get("hermes_cli.models")
+    if mod is None:
+        return False
+
+    providers = getattr(mod, "CANONICAL_PROVIDERS", None)
+    ProviderEntry = getattr(mod, "ProviderEntry", None)
+    if providers is None or ProviderEntry is None:
+        return False
+
+    if not any(getattr(p, "slug", None) == "latinrouter" for p in providers):
+        return False
+
+    entry = ProviderEntry("latinrouter", _DISPLAY_NAME, _DESCRIPTION)
+    rest = [p for p in providers if getattr(p, "slug", None) != "latinrouter"]
+    providers[:] = [entry] + rest
+
+    labels = getattr(mod, "_PROVIDER_LABELS", None)
+    if isinstance(labels, dict):
+        labels["latinrouter"] = _DISPLAY_NAME
+    return True
+
+
+def _prefer_latinrouter_first() -> None:
+    """Hermes appends user plugins at the end; promote LatinRouter to the top.
+
+    During ``hermes_cli.models`` import, this plugin loads *before* the
+    auto-extend ``append`` loop finishes, so we poll briefly until the
+    entry exists and then move it to the front.
+    """
+    if _ensure_latinrouter_first():
+        return
+
+    def _poll() -> None:
+        for _ in range(200):
+            try:
+                if _ensure_latinrouter_first():
+                    return
+            except Exception:
+                return
+            time.sleep(0.005)
+
+    try:
+        threading.Thread(
+            target=_poll, name="latinrouter-prefer-first", daemon=True
+        ).start()
+    except Exception:
+        pass
+
+
+_prefer_latinrouter_first()
