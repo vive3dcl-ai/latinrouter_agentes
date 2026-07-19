@@ -79,6 +79,53 @@ Docs: [hermes.md](hermes.md)
 
 ---
 
+## OpenCode
+
+Instala (si hace falta) OpenCode desde el oficial y registra **LatinRouter** como proveedor (plugin + config).
+
+| Situación | Comportamiento |
+|-----------|----------------|
+| Sin OpenCode | Instala OpenCode oficial automáticamente |
+| OpenCode presente | Solo instala el proveedor LatinRouter |
+| API key | Pregunta interactiva (Enter = omitir → `/connect` después) |
+| Idioma | Automático según la consola (es / en) |
+
+### Linux / macOS / WSL2
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.sh | bash
+```
+
+### Windows nativo (PowerShell)
+
+```powershell
+iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.ps1)
+```
+
+Config: `%USERPROFILE%\.config\opencode\`
+
+### Desde un clone local
+
+```bash
+bash opencode/install.sh
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File opencode\install.ps1
+```
+
+### Después de instalar (OpenCode)
+
+```bash
+opencode
+# /connect → LatinRouter → API key   (si no la diste en el instalador)
+# /models  → elegir modelo del gateway
+```
+
+Docs: [opencode.md](opencode.md)
+
+---
+
 ## OpenCodex
 
 Pendiente.
@@ -114,6 +161,7 @@ Pendiente.
 | Agente | Linux / macOS / WSL2 | Windows nativo |
 |--------|----------------------|----------------|
 | **Hermes** | `curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/hermes/install.sh \| bash` | `iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/hermes/install.ps1)` |
+| **OpenCode** | `curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.sh \| bash` | `iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.ps1)` |
 | OpenCodex | — | — |
 | Claude Code | — | — |
 | OpenClaw | — | — |
