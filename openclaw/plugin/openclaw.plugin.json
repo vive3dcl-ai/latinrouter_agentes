@@ -1,0 +1,38 @@
+{
+  "id": "latinrouter",
+  "name": "LatinRouter",
+  "description": "LatinRouter (Gateway IA Centralizado para Latinoamérica)",
+  "activation": {
+    "onStartup": false
+  },
+  "providers": ["latinrouter"],
+  "setup": {
+    "providers": [
+      {
+        "id": "latinrouter",
+        "envVars": ["LATINROUTER_API_KEY"]
+      }
+    ]
+  },
+  "providerAuthChoices": [
+    {
+      "provider": "latinrouter",
+      "method": "api-key",
+      "choiceId": "latinrouter-api-key",
+      "choiceLabel": "LatinRouter API key",
+      "choiceHint": "Gateway IA Centralizado para Latinoamérica",
+      "groupId": "latinrouter",
+      "groupLabel": "LatinRouter",
+      "groupHint": "Gateway IA Centralizado para Latinoamérica",
+      "optionKey": "latinrouterApiKey",
+      "cliFlag": "--latinrouter-api-key",
+      "cliOption": "--latinrouter-api-key <key>",
+      "cliDescription": "LatinRouter API key"
+    }
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

@@ -165,6 +165,74 @@ Docs: [opencode.md](opencode.md)
 
 ---
 
+## OpenClaw
+
+Instala (si hace falta) [OpenClaw](https://openclaw.ai) y registra **LatinRouter** como proveedor nombrado del wizard (`openclaw onboard`).
+
+| Situación | Comportamiento |
+|-----------|----------------|
+| Sin OpenClaw | Instala OpenClaw oficial (`--no-onboard` cuando aplica) |
+| OpenClaw presente | Pregunta update si existe `openclaw update` (Enter = Sí) |
+| API key | Pregunta interactiva (Enter = omitir → wizard) |
+| Wizard | **More… → LatinRouter** (Featured es hardcodeado upstream) |
+| Idioma | Automático según la consola (es / en) |
+
+### Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/openclaw/install.sh | bash
+```
+
+### macOS
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/openclaw/install.sh | bash
+```
+
+### WSL2
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/openclaw/install.sh | bash
+```
+
+Usa `~/.openclaw` de Linux, no el de Windows nativo.
+
+### Windows nativo (PowerShell)
+
+```powershell
+iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/openclaw/install.ps1)
+```
+
+Home: `%USERPROFILE%\.openclaw`
+
+### Desde un clone local
+
+```bash
+bash openclaw/install.sh
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File openclaw\install.ps1
+```
+
+### Después de instalar (OpenClaw)
+
+```bash
+openclaw onboard
+# More… → LatinRouter → API key
+openclaw models list
+```
+
+### Opciones útiles (OpenClaw)
+
+```bash
+LATINROUTER_SKIP_OPENCLAW_UPDATE=1 bash openclaw/install.sh
+```
+
+Docs: [openclaw.md](openclaw.md)
+
+---
+
 ## OpenCodex
 
 Pendiente.
@@ -185,22 +253,12 @@ Pendiente.
 
 ---
 
-## OpenClaw
-
-Pendiente.
-
-```bash
-# (próximamente)
-```
-
----
-
 ## Resumen rápido
 
 | Agente | Linux / macOS / WSL2 | Windows nativo |
 |--------|----------------------|----------------|
 | **Hermes** | `curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/hermes/install.sh \| bash` | `iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/hermes/install.ps1)` |
 | **OpenCode** | `curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.sh \| bash` | `iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.ps1)` |
+| **OpenClaw** | `curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/openclaw/install.sh \| bash` | `iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/openclaw/install.ps1)` |
 | OpenCodex | — | — |
 | Claude Code | — | — |
-| OpenClaw | — | — |

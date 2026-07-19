@@ -12,9 +12,9 @@ LatinRouter es **OpenAI-compatible** (`/v1`, `/v1/models`, chat completions). El
 |--------|--------|-------------|
 | [Hermes Agent](https://github.com/NousResearch/hermes-agent) | Listo (Linux / macOS / Windows) | [docs/install.md](docs/install.md#hermes-agent) |
 | [OpenCode](https://opencode.ai) | Listo (Linux / macOS / Windows) | [docs/install.md](docs/install.md#opencode) |
+| [OpenClaw](https://openclaw.ai) | Listo (Linux / macOS / Windows) | [docs/install.md](docs/install.md#openclaw) |
 | OpenCodex | Pendiente | — |
 | Claude Code | Pendiente | — |
-| OpenClaw | Pendiente | — |
 
 ## Instalación (todos los agentes / distros)
 
@@ -52,15 +52,31 @@ Luego: `opencode` → `/connect` → LatinRouter (**primero** en Providers) → 
 
 Detalle: [docs/opencode.md](docs/opencode.md) · Instaladores: [docs/install.md](docs/install.md#opencode) · Key: [latinrouter.ai](https://latinrouter.ai)
 
+### OpenClaw — one-liner
+
+```bash
+# Linux / macOS / WSL2
+curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/openclaw/install.sh | bash
+```
+
+```powershell
+# Windows nativo
+iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/openclaw/install.ps1)
+```
+
+Luego: `openclaw onboard` → **More…** → LatinRouter → API key → `openclaw models list`
+
+Detalle: [docs/openclaw.md](docs/openclaw.md) · Instaladores: [docs/install.md](docs/install.md#openclaw) · Key: [latinrouter.ai](https://latinrouter.ai)
+
 
 ## Gateway
 
 | Campo | Valor |
 |-------|--------|
 | Base URL | `https://llm.latinrouter.ai/v1` |
-| Modelos | `GET /v1/models` (automático en Hermes y OpenCode) |
+| Modelos | `GET /v1/models` (automático en Hermes, OpenCode y OpenClaw) |
 | Auth | `Authorization: Bearer <LATINROUTER_API_KEY>` |
 
 ## Estrategia multi-agente
 
-Ver [docs/strategy.md](docs/strategy.md) para el patrón reutilizable (OpenCodex, Claude Code, OpenClaw).
+Ver [docs/strategy.md](docs/strategy.md) para el patrón reutilizable (OpenCodex, Claude Code).

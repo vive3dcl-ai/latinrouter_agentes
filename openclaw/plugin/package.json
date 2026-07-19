@@ -1,0 +1,19 @@
+{
+  "name": "@latinrouter/openclaw-latinrouter",
+  "version": "1.0.0",
+  "description": "LatinRouter OpenAI-compatible provider for OpenClaw",
+  "type": "module",
+  "license": "MIT",
+  "openclaw": {
+    "extensions": ["./index.ts"],
+    "providers": ["latinrouter"],
+    "compat": {
+      "pluginApi": ">=2026.3.24-beta.2",
+      "minGatewayVersion": "2026.3.24-beta.2"
+    },
+    "build": {
+      "openclawVersion": "2026.3.24-beta.2",
+      "pluginSdkVersion": "2026.3.24-beta.2"
+    }
+  }
+}
