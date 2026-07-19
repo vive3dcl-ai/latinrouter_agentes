@@ -5,7 +5,7 @@ Plugin + instalador para [OpenCode](https://github.com/anomalyco/opencode).
 | Campo | Valor |
 |-------|--------|
 | Provider id | `latinrouter` |
-| Nombre | LatinRouter (Gateway IA Centralizado para Latinoamérica) |
+| Nombre | ` LatinRouter (Gateway…)` (espacio inicial → primero en Providers) |
 | Base URL | `https://llm.latinrouter.ai/v1` |
 | Modelos | `GET /v1/models` (vía plugin) |
 | Auth | `/connect` → LatinRouter, o `LATINROUTER_API_KEY` |

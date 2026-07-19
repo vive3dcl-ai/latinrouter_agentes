@@ -11,7 +11,9 @@
 
 const BASE_URL = "https://llm.latinrouter.ai/v1"
 const PROVIDER_ID = "latinrouter"
-const DISPLAY_NAME = "LatinRouter (Gateway IA Centralizado para Latinoamérica)"
+// Leading space pins LatinRouter first in the /connect "Providers" section
+// (OpenCode sorts that section alphabetically by name; Popular requires upstream).
+const DISPLAY_NAME = " LatinRouter (Gateway IA Centralizado para Latinoamérica)"
 const SEED_MODEL_ID = "latinrouter"
 
 function homeDir() {
@@ -150,7 +152,7 @@ export async function LatinRouterPlugin() {
       cfg.provider[PROVIDER_ID] = {
         ...entry,
         npm: entry.npm || "@ai-sdk/openai-compatible",
-        name: entry.name || DISPLAY_NAME,
+        name: DISPLAY_NAME,
         env: entry.env || ["LATINROUTER_API_KEY"],
         options: {
           ...(entry.options && typeof entry.options === "object" ? entry.options : {}),

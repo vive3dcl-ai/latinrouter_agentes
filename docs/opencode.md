@@ -111,7 +111,7 @@ El instalador escribe (merge no destructivo) algo equivalente a:
   "provider": {
     "latinrouter": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "LatinRouter (Gateway IA Centralizado para Latinoamérica)",
+      "name": " LatinRouter (Gateway IA Centralizado para Latinoamérica)",
       "env": ["LATINROUTER_API_KEY"],
       "options": {
         "baseURL": "https://llm.latinrouter.ai/v1"
@@ -131,11 +131,12 @@ Otras keys y providers del usuario se conservan.
 | Objetivo | Estado |
 |----------|--------|
 | Nombrado en `/connect` | Sí — requiere ≥1 modelo en config (el plugin/instalador lo siembra) |
+| Primero en sección **Providers** | Sí — el `name` lleva un espacio inicial para ganar el sort alfabético de OpenCode |
 | Modelos live del gateway | Sí — hook `config` + `/v1/models` cuando hay key |
 | Modelo por defecto LatinRouter | Sí (`model` + state si hay key) |
 | Primero en sección **Popular** de `/connect` | **No** sin PR a OpenCode (`PROVIDER_PRIORITY` está hardcodeado: opencode, openai, anthropic, …) |
 
-Tras reinstalar/actualizar el plugin, reinicia OpenCode. LatinRouter aparece en la sección **Providers** (no Popular). Para conectar la key: `/connect` → LatinRouter.
+Tras reinstalar/actualizar el plugin, reinicia OpenCode. LatinRouter aparece **primero** en **Providers** (no en Popular). Para conectar la key: `/connect` → LatinRouter.
 
 ### Workaround inmediato (si aún no lo ves)
 

@@ -18,7 +18,8 @@ set -euo pipefail
 PROVIDER_ID="latinrouter"
 BASE_URL="https://llm.latinrouter.ai/v1"
 SIGNUP_URL="https://latinrouter.ai"
-DISPLAY_NAME="LatinRouter (Gateway IA Centralizado para Latinoamérica)"
+# Leading space → first in /connect "Providers" (alphabetical). Popular needs upstream.
+DISPLAY_NAME=" LatinRouter (Gateway IA Centralizado para Latinoamérica)"
 OFFICIAL_INSTALL_URL="https://opencode.ai/install"
 OPENCODE_RELEASES_API="https://api.github.com/repos/anomalyco/opencode/releases/latest"
 

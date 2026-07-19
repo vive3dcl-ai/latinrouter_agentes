@@ -18,7 +18,8 @@ $ErrorActionPreference = "Stop"
 $ProviderId = "latinrouter"
 $BaseUrl = "https://llm.latinrouter.ai/v1"
 $SignupUrl = "https://latinrouter.ai"
-$DisplayName = "LatinRouter (Gateway IA Centralizado para Latinoamérica)"
+# Leading space → first in /connect "Providers" (alphabetical). Popular needs upstream.
+$DisplayName = " LatinRouter (Gateway IA Centralizado para Latinoamérica)"
 $PluginRawUrl = "https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/plugin/latinrouter.js"
 $ReleasesApi = "https://api.github.com/repos/anomalyco/opencode/releases/latest"
 
