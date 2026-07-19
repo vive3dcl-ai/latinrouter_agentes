@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Install LatinRouter as a Hermes model-provider plugin.
 #
+# Behavior:
+#   1. No Hermes            → install from official NousResearch installer
+#   2. Hermes outdated      → ask to update (default: Yes), then install plugin
+#   3. Hermes up to date    → install LatinRouter provider quietly
+#
 # Platforms:
-#   Linux / macOS / WSL2  → bash hermes/install.sh  (HERMES_HOME=~/.hermes)
-#   Windows native        → use hermes/install.ps1  (%LOCALAPPDATA%\hermes)
-#   Git Bash on Windows   → this script auto-detects LOCALAPPDATA\hermes
+#   Linux / macOS / WSL2  → this script  (HERMES_HOME=~/.hermes)
+#   Windows native        → hermes/install.ps1
 #
 # Usage:
 #   bash hermes/install.sh
@@ -14,6 +18,16 @@ set -euo pipefail
 PROVIDER_NAME="latinrouter"
 BASE_URL="https://llm.latinrouter.ai/v1"
 SIGNUP_URL="https://latinrouter.ai"
+OFFICIAL_INSTALL_URL="https://hermes-agent.nousresearch.com/install.sh"
+
+# Quiet when Hermes is already current (plugin-only path)
+QUIET=0
+log()  { [[ "$QUIET" -eq 1 ]] || echo "$@"; }
+logf() { echo "$@"; }  # always print (errors / final status)
+
+is_interactive() {
+  [[ -t 0 && -t 1 ]]
+}
 
 # ---------------------------------------------------------------------------
 # Resolve HERMES_HOME (match Hermes platform defaults)
@@ -23,11 +37,9 @@ resolve_hermes_home() {
     printf '%s' "$HERMES_HOME"
     return
   fi
-  # Native Windows Hermes (Git Bash / MSYS / Cygwin) — not WSL
   case "$(uname -s 2>/dev/null || echo unknown)" in
     MINGW*|MSYS*|CYGWIN*)
       if [[ -n "${LOCALAPPDATA:-}" ]]; then
-        # Convert Windows path if cygpath exists; else use as-is / forward slashes
         if command -v cygpath >/dev/null 2>&1; then
           cygpath -u "$LOCALAPPDATA/hermes"
         else
@@ -41,14 +53,18 @@ resolve_hermes_home() {
 }
 
 HERMES_HOME="$(resolve_hermes_home)"
+export HERMES_HOME
 
-# Hint if someone runs bash installer on Windows without Git Bash paths
-if [[ "$(uname -s 2>/dev/null || true)" == MINGW* ]] || [[ "$(uname -s 2>/dev/null || true)" == MSYS* ]]; then
-  :
-elif [[ -n "${WINDIR:-}" && -z "${WSL_DISTRO_NAME:-}" && -z "${HERMES_HOME_SET_BY_USER:-}" ]]; then
-  # Rare: bash inside some Windows env — prefer PowerShell installer messaging later
-  true
-fi
+# Ensure common Hermes bin dirs are on PATH (fresh install / new shell)
+refresh_path() {
+  export PATH="${HOME}/.local/bin:/usr/local/bin:${PATH}"
+  hash -r 2>/dev/null || true
+}
+
+hermes_available() {
+  refresh_path
+  command -v hermes >/dev/null 2>&1
+}
 
 # ---------------------------------------------------------------------------
 # Locate plugin source (local clone vs curl | bash)
@@ -63,7 +79,6 @@ if [[ -n "$SCRIPT_DIR" && -f "$SCRIPT_DIR/plugin/${PROVIDER_NAME}/__init__.py" ]
   PLUGIN_SRC="$SCRIPT_DIR/plugin/${PROVIDER_NAME}"
 fi
 
-# When piped via curl, BASH_SOURCE may be empty or /dev/fd/* — write embedded copy.
 write_embedded_plugin() {
   local dest="$1"
   mkdir -p "$dest"
@@ -119,7 +134,7 @@ YAML
 | API key env | `LATINROUTER_API_KEY` |
 
 ```bash
-hermes model   # elegir LatinRouter → pegar API key → lista de modelos
+hermes model
 hermes
 ```
 
@@ -127,74 +142,135 @@ Key: https://latinrouter.ai
 MD
 }
 
-# ---------------------------------------------------------------------------
-# Checks
-# ---------------------------------------------------------------------------
-echo "==> LatinRouter provider for Hermes"
-echo "    HERMES_HOME=$HERMES_HOME"
-echo "    Platforms: Linux / macOS / WSL2 (this script); Windows native → install.ps1"
+install_plugin() {
+  local dest="$HERMES_HOME/plugins/model-providers/${PROVIDER_NAME}"
+  mkdir -p "$(dirname "$dest")"
+  rm -rf "$dest"
+  mkdir -p "$dest"
 
-if [[ ! -d "$HERMES_HOME" ]]; then
-  echo ""
-  echo "WARNING: $HERMES_HOME does not exist."
-  echo "Install Hermes first:"
-  echo "  Linux/macOS/WSL: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
-  echo "  Windows native:  iex (irm https://hermes-agent.nousresearch.com/install.ps1)"
-  echo ""
-  # Non-interactive (curl | bash): create dir and continue
-  if [[ ! -t 0 ]]; then
-    echo "Non-interactive mode: creating $HERMES_HOME"
-    mkdir -p "$HERMES_HOME"
+  if [[ -n "$PLUGIN_SRC" ]]; then
+    log "==> Installing LatinRouter provider"
+    cp -a "$PLUGIN_SRC/." "$dest/"
   else
-    read -r -p "Create $HERMES_HOME and continue anyway? [y/N] " reply || true
-    case "${reply:-}" in
-      y|Y|yes|YES) mkdir -p "$HERMES_HOME" ;;
-      *)
-        echo "Aborted. Install Hermes, then re-run this script."
-        exit 1
-        ;;
-    esac
+    log "==> Installing LatinRouter provider"
+    write_embedded_plugin "$dest"
   fi
-fi
 
-if ! command -v hermes >/dev/null 2>&1; then
-  echo "WARNING: 'hermes' not found in PATH. Plugin will still be installed;"
-  echo "         open a new shell after installing Hermes."
-fi
+  logf "✓ LatinRouter provider installed → $dest"
+}
+
+install_hermes_official() {
+  logf "==> Hermes not found — installing from official installer"
+  logf "    $OFFICIAL_INSTALL_URL"
+  curl -fsSL "$OFFICIAL_INSTALL_URL" | bash -s -- --skip-setup
+  refresh_path
+  if ! hermes_available; then
+    logf "ERROR: Hermes install finished but 'hermes' is not on PATH."
+    logf "Open a new terminal and re-run this script, or add ~/.local/bin to PATH."
+    exit 1
+  fi
+  logf "✓ Hermes installed"
+}
+
+# Returns 0 if update available, 1 if up to date, 2 if check failed
+hermes_update_available() {
+  local out
+  if ! out="$(hermes update --check 2>&1)"; then
+    # Some builds still print useful text on non-zero; fall through to parse
+    :
+  fi
+  if printf '%s\n' "$out" | grep -qiE 'Update available|behind'; then
+    printf '%s\n' "$out" | grep -iE 'Update available|behind' | head -5 >&2 || true
+    return 0
+  fi
+  if printf '%s\n' "$out" | grep -qiE 'Already up to date|up to date'; then
+    return 1
+  fi
+  # Ambiguous — treat as up to date to avoid surprising full upgrades
+  return 1
+}
+
+prompt_update_hermes() {
+  # Default Yes. Non-interactive → Yes.
+  local reply
+  if [[ "${LATINROUTER_SKIP_HERMES_UPDATE:-}" == "1" ]]; then
+    return 1
+  fi
+  if ! is_interactive; then
+    logf "==> Hermes is outdated — updating (non-interactive default: Yes)"
+    return 0
+  fi
+  read -r -p "Hermes está desactualizado. ¿Actualizar ahora? [Y/n] " reply || true
+  case "${reply:-Y}" in
+    n|N|no|NO) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+update_hermes() {
+  logf "==> Updating Hermes…"
+  # -y skips interactive migrate prompts; API keys are not wiped
+  if hermes update -y; then
+    refresh_path
+    logf "✓ Hermes updated"
+  else
+    logf "WARNING: hermes update failed — continuing with LatinRouter provider install"
+  fi
+}
 
 # ---------------------------------------------------------------------------
-# Install plugin
+# Main
 # ---------------------------------------------------------------------------
-DEST="$HERMES_HOME/plugins/model-providers/${PROVIDER_NAME}"
-mkdir -p "$(dirname "$DEST")"
+log "==> LatinRouter + Hermes"
+log "    HERMES_HOME=$HERMES_HOME"
 
-if [[ -n "$PLUGIN_SRC" ]]; then
-  echo "==> Copying plugin from $PLUGIN_SRC"
-  rm -rf "$DEST"
-  mkdir -p "$DEST"
-  cp -a "$PLUGIN_SRC/." "$DEST/"
+# 1) Ensure Hermes exists
+if ! hermes_available; then
+  install_hermes_official
+  QUIET=0
 else
-  echo "==> Writing embedded plugin (curl | bash mode)"
-  rm -rf "$DEST"
-  write_embedded_plugin "$DEST"
+  # 2) Check for updates
+  log "==> Checking Hermes version…"
+  set +e
+  hermes_update_available
+  status=$?
+  set -e
+  case "$status" in
+    0)
+      if prompt_update_hermes; then
+        update_hermes
+        QUIET=0
+      else
+        log "==> Skipping Hermes update"
+        QUIET=0
+      fi
+      ;;
+    *)
+      # Up to date (or check inconclusive) → quiet plugin-only install
+      QUIET=1
+      ;;
+  esac
 fi
 
-# ---------------------------------------------------------------------------
-# Done
-# ---------------------------------------------------------------------------
-echo ""
-echo "Installed: $DEST"
-echo ""
-echo "Next steps:"
-echo "  1. Get an API key at $SIGNUP_URL"
-echo "  2. Run:  hermes model"
-echo "  3. Select: LatinRouter"
-echo "  4. Paste your LATINROUTER_API_KEY when prompted"
-echo "  5. Hermes lista modelos automáticamente desde $BASE_URL/models"
-echo "  6. Start chatting:  hermes"
-echo ""
-echo "Optional: set the key manually in $HERMES_HOME/.env"
-echo "  LATINROUTER_API_KEY=sk-..."
-echo ""
-echo "Windows native users: prefer  powershell -File hermes/install.ps1"
-echo ""
+# Re-resolve home after possible Hermes install (may create ~/.hermes)
+HERMES_HOME="$(resolve_hermes_home)"
+export HERMES_HOME
+mkdir -p "$HERMES_HOME"
+
+# 3) Install LatinRouter provider
+install_plugin
+
+if [[ "$QUIET" -eq 1 ]]; then
+  # Minimal next-step hint even in quiet mode
+  logf "Next: hermes model  →  LatinRouter  →  paste API key  ($SIGNUP_URL)"
+else
+  echo ""
+  echo "Next steps:"
+  echo "  1. Get an API key at $SIGNUP_URL"
+  echo "  2. Run:  hermes model"
+  echo "  3. Select: LatinRouter"
+  echo "  4. Paste your LATINROUTER_API_KEY when prompted"
+  echo "  5. Models load automatically from $BASE_URL/models"
+  echo "  6. Start chatting:  hermes"
+  echo ""
+fi

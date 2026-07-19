@@ -33,17 +33,18 @@ Discovery oficial: `$HERMES_HOME/plugins/model-providers/<name>/` (ver [Model Pr
 
 ## Requisitos
 
-- Hermes instalado (`hermes` en PATH)
 - Cuenta y API key en [latinrouter.ai](https://latinrouter.ai)
+- Hermes **no** es requisito previo: el instalador lo gestiona solo
 
-### Instalar Hermes
+## Comportamiento del instalador
 
-| Plataforma | Comando |
-|------------|---------|
-| Linux / macOS / WSL2 | `curl -fsSL https://hermes-agent.nousresearch.com/install.sh \| bash` |
-| Windows nativo | `iex (irm https://hermes-agent.nousresearch.com/install.ps1)` |
+| Situación | Qué hace |
+|-----------|----------|
+| Hermes no instalado | Instala Hermes desde el instalador oficial (`hermes-agent.nousresearch.com`) con `--skip-setup` |
+| Hermes desactualizado | Pregunta: *¿Actualizar ahora? [Y/n]* — **default Sí** (en modo no interactivo también Sí). Luego instala el plugin |
+| Hermes al día | Solo instala el proveedor LatinRouter (salida mínima) |
 
-Luego recarga el shell (`source ~/.bashrc` / nueva ventana de PowerShell).
+Para no actualizar Hermes aunque esté desactualizado: `LATINROUTER_SKIP_HERMES_UPDATE=1`.
 
 ## Instalación del proveedor LatinRouter
 
@@ -58,11 +59,7 @@ Luego recarga el shell (`source ~/.bashrc` / nueva ventana de PowerShell).
 
 ```bash
 bash hermes/install.sh
-```
-
-One-liner (repo publicado):
-
-```bash
+# o:
 curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/hermes/install.sh | bash
 ```
 
@@ -70,21 +67,11 @@ curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/mai
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File hermes\install.ps1
-```
-
-One-liner (repo publicado):
-
-```powershell
+# o:
 iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/hermes/install.ps1)
 ```
 
-**Importante:** si usas Hermes en **WSL2**, instala el plugin **dentro de WSL** con `install.sh`. Si usas Hermes **nativo en Windows**, usa `install.ps1`. Son homes distintos (`~/.hermes` vs `%LOCALAPPDATA%\hermes`).
-
-El script:
-
-1. Resuelve `HERMES_HOME` según la plataforma
-2. Copia el plugin a `$HERMES_HOME/plugins/model-providers/latinrouter/`
-3. Imprime los siguientes pasos
+**Importante:** si usas Hermes en **WSL2**, corre `install.sh` **dentro de WSL**. Si usas Hermes **nativo en Windows**, usa `install.ps1`. Son homes distintos (`~/.hermes` vs `%LOCALAPPDATA%\hermes`).
 
 ## Uso
 

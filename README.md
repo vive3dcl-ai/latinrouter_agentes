@@ -17,15 +17,16 @@ LatinRouter es **OpenAI-compatible** (`/v1`, `/v1/models`, chat completions). El
 
 ## Hermes — quickstart
 
-1. Instala [Hermes](https://hermes-agent.nousresearch.com/docs) si aún no lo tienes.
-2. Instala el proveedor LatinRouter:
+Un solo comando. El instalador:
+
+1. **Sin Hermes** → lo instala desde el instalador oficial de NousResearch  
+2. **Hermes desactualizado** → pregunta si actualizar (**default: Sí**)  
+3. **Hermes al día** → solo instala LatinRouter (silencioso)
 
 | Plataforma | Comando |
 |------------|---------|
-| Linux / macOS / WSL2 | `bash hermes/install.sh` |
-| Windows nativo | `powershell -ExecutionPolicy Bypass -File hermes\install.ps1` |
-
-One-liners (cuando el repo esté en GitHub):
+| Linux / macOS / WSL2 | one-liner abajo |
+| Windows nativo | one-liner PowerShell abajo |
 
 ```bash
 # Linux / macOS / WSL2
@@ -37,7 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/mai
 iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/hermes/install.ps1)
 ```
 
-3. Configura:
+Luego:
 
 ```bash
 hermes model    # elige LatinRouter → pega tu API key → modelos automáticos
