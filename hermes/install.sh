@@ -6,8 +6,7 @@
 #   2. Hermes outdated      → ask to update (default: Yes), then install plugin
 #   3. Hermes up to date    → install LatinRouter provider quietly
 #
-# Language: auto from LANG/LC_* (es → Spanish, else English).
-# Override: LATINROUTER_LANG=es|en
+# Language: automatic from LANG/LC_* (es → Spanish, else English).
 #
 # Platforms:
 #   Linux / macOS / WSL2  → this script  (HERMES_HOME=~/.hermes)
@@ -27,14 +26,6 @@ OFFICIAL_INSTALL_URL="https://hermes-agent.nousresearch.com/install.sh"
 # i18n
 # ---------------------------------------------------------------------------
 detect_lang() {
-  local override="${LATINROUTER_LANG:-}"
-  if [[ -n "$override" ]]; then
-    override="$(printf '%s' "$override" | tr '[:upper:]' '[:lower:]')"
-    case "$override" in
-      es|es_*|spanish|español|espanol) echo es; return ;;
-      en|en_*|english) echo en; return ;;
-    esac
-  fi
   local loc="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
   loc="$(printf '%s' "$loc" | tr '[:upper:]' '[:lower:]')"
   case "$loc" in

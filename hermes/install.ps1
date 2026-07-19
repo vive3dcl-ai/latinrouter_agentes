@@ -5,8 +5,7 @@
 #   2. Hermes outdated      → ask to update (default: Yes), then install plugin
 #   3. Hermes up to date    → install LatinRouter provider quietly
 #
-# Language: auto from UI culture (es → Spanish, else English).
-# Override: $env:LATINROUTER_LANG = "es" | "en"
+# Language: automatic from Windows UI culture (es → Spanish, else English).
 #
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File hermes\install.ps1
@@ -24,12 +23,6 @@ $OfficialInstallUrl = "https://hermes-agent.nousresearch.com/install.ps1"
 $script:Quiet = $false
 
 function Get-InstallLang {
-    $override = $env:LATINROUTER_LANG
-    if ($override) {
-        $o = $override.Trim().ToLowerInvariant()
-        if ($o -match '^(es|spanish|español|espanol)' -or $o.StartsWith("es")) { return "es" }
-        if ($o -match '^(en|english)' -or $o.StartsWith("en")) { return "en" }
-    }
     try {
         $culture = [System.Globalization.CultureInfo]::CurrentUICulture
         if ($culture.TwoLetterISOLanguageName -eq "es") { return "es" }
