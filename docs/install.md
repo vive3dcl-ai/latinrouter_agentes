@@ -86,7 +86,8 @@ Instala (si hace falta) OpenCode desde el oficial y registra **LatinRouter** com
 | Situación | Comportamiento |
 |-----------|----------------|
 | Sin OpenCode | Instala OpenCode oficial automáticamente |
-| OpenCode presente | Solo instala el proveedor LatinRouter |
+| OpenCode desactualizado | Pregunta si actualizar (Enter = Sí) |
+| OpenCode al día | Solo instala el proveedor LatinRouter |
 | API key | Pregunta interactiva (Enter = omitir → `/connect` después) |
 | Idioma | Automático según la consola (es / en) |
 
@@ -123,6 +124,13 @@ opencode
 ```
 
 Docs: [opencode.md](opencode.md)
+
+### Opciones útiles (OpenCode)
+
+```bash
+# No preguntar por actualizar OpenCode
+LATINROUTER_SKIP_OPENCODE_UPDATE=1 bash opencode/install.sh
+```
 
 ---
 

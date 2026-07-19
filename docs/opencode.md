@@ -34,9 +34,22 @@ Así LatinRouter aparece **nombrado** en `/connect` (hint `plugin`), no como “
 | Situación | Qué hace |
 |-----------|----------|
 | OpenCode no instalado | Instala desde el oficial (`opencode.ai/install` en Unix; scoop/npm/choco en Windows) |
-| OpenCode presente | Solo instala el proveedor LatinRouter |
+| OpenCode desactualizado | Pregunta: *¿Actualizar ahora? [S/n]* — Enter = **Sí**. Sin TTY, omite la actualización |
+| OpenCode al día | Solo instala el proveedor LatinRouter |
 | API key | Pregunta interactiva; Enter vacío = configurar después con `/connect` |
 | Idioma | Automático (es / en) según locale / UI culture |
+
+Para no actualizar OpenCode aunque haya versión nueva: `LATINROUTER_SKIP_OPENCODE_UPDATE=1`.
+
+## ¿Se pierde LatinRouter al actualizar OpenCode?
+
+**No.** `opencode upgrade` (o el prompt de actualización del instalador) solo cambia el binario. El proveedor vive fuera:
+
+- Plugin: `~/.config/opencode/plugins/latinrouter.js`
+- Config: `~/.config/opencode/opencode.json`
+- API key: `~/.local/share/opencode/auth.json`
+
+Sí se pierde (salvo flags) con `opencode uninstall`, que borra config/datos relacionados. Usa `--keep-config` / `--keep-data` si quieres conservarlas.
 
 ## Paths
 

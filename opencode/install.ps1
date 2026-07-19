@@ -1,11 +1,13 @@
 # Install LatinRouter as an OpenCode provider (plugin + config) — Windows.
 #
 # Behavior:
-#   1. No OpenCode → try scoop / npm official install
-#   2. Prompt API key (blank = /connect later)
-#   3. Drop plugin + merge opencode.json
+#   1. No OpenCode → try scoop / npm / choco official install
+#   2. OpenCode outdated → ask to update (default: Yes), then install provider
+#   3. Prompt API key (blank = /connect later)
+#   4. Drop plugin + merge opencode.json
 #
 # Language: automatic from Windows UI culture (es / en).
+# Skip update prompt: $env:LATINROUTER_SKIP_OPENCODE_UPDATE = "1"
 #
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File opencode\install.ps1
@@ -18,6 +20,7 @@ $BaseUrl = "https://llm.latinrouter.ai/v1"
 $SignupUrl = "https://latinrouter.ai"
 $DisplayName = "LatinRouter (Gateway IA Centralizado para Latinoamérica)"
 $PluginRawUrl = "https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/plugin/latinrouter.js"
+$ReleasesApi = "https://api.github.com/repos/anomalyco/opencode/releases/latest"
 
 function Get-InstallLang {
     try {
@@ -35,44 +38,58 @@ $script:Lang = Get-InstallLang
 function Get-Msg {
     param([string]$Key, [object[]]$Args = @())
     $es = @{
-        banner       = "==> LatinRouter + OpenCode (Windows)"
-        home         = "    Config: {0}"
-        no_oc        = "==> OpenCode no encontrado — instalando…"
-        oc_ok        = "✓ OpenCode instalado"
-        oc_path_err  = "ERROR: 'opencode' no está en el PATH. Abre PowerShell nuevo y re-ejecuta."
-        install_prov = "==> Instalando proveedor LatinRouter"
-        plugin_ok    = "✓ Plugin instalado → {0}"
-        config_ok    = "✓ Config actualizada → {0}"
-        key_prompt   = "API key de LatinRouter (Enter para omitir y usar /connect después)"
-        key_saved    = "✓ API key guardada"
-        key_skip     = "==> Sin key — usa /connect → LatinRouter dentro de OpenCode"
-        models_ok    = "✓ Modelos detectados: {0} (default: {1})"
-        models_fail  = "ADVERTENCIA: no se pudo listar /v1/models"
-        next_title   = "Siguientes pasos:"
-        next_1       = "  1. Obtén una key en {0}"
-        next_2       = "  2. Ejecuta:  opencode"
-        next_3       = "  3. /connect → LatinRouter → pega tu API key"
-        next_4       = "  4. /models → elige un modelo"
+        banner         = "==> LatinRouter + OpenCode (Windows)"
+        home           = "    Config: {0}"
+        no_oc          = "==> OpenCode no encontrado — instalando…"
+        oc_ok          = "✓ OpenCode instalado"
+        oc_path_err    = "ERROR: 'opencode' no está en el PATH. Abre PowerShell nuevo y re-ejecuta."
+        checking       = "==> Comprobando actualizaciones de OpenCode…"
+        update_prompt  = "OpenCode está desactualizado ({0} → {1}). ¿Actualizar ahora? [S/n]"
+        updating       = "==> Actualizando OpenCode…"
+        updated        = "✓ OpenCode actualizado"
+        update_fail    = "ADVERTENCIA: falló 'opencode upgrade' — se continúa con LatinRouter"
+        skip_update    = "==> Se omite la actualización de OpenCode"
+        no_tty_update  = "==> No hay terminal interactiva; se omite la actualización de OpenCode"
+        install_prov   = "==> Instalando proveedor LatinRouter"
+        plugin_ok      = "✓ Plugin instalado → {0}"
+        config_ok      = "✓ Config actualizada → {0}"
+        key_prompt     = "API key de LatinRouter (Enter para omitir y usar /connect después)"
+        key_saved      = "✓ API key guardada"
+        key_skip       = "==> Sin key — usa /connect → LatinRouter dentro de OpenCode"
+        models_ok      = "✓ Modelos detectados: {0} (default: {1})"
+        models_fail    = "ADVERTENCIA: no se pudo listar /v1/models"
+        next_title     = "Siguientes pasos:"
+        next_1         = "  1. Obtén una key en {0}"
+        next_2         = "  2. Ejecuta:  opencode"
+        next_3         = "  3. /connect → LatinRouter → pega tu API key"
+        next_4         = "  4. /models → elige un modelo"
     }
     $en = @{
-        banner       = "==> LatinRouter + OpenCode (Windows)"
-        home         = "    Config: {0}"
-        no_oc        = "==> OpenCode not found — installing…"
-        oc_ok        = "✓ OpenCode installed"
-        oc_path_err  = "ERROR: 'opencode' is not on PATH. Open a new PowerShell and re-run."
-        install_prov = "==> Installing LatinRouter provider"
-        plugin_ok    = "✓ Plugin installed → {0}"
-        config_ok    = "✓ Config updated → {0}"
-        key_prompt   = "LatinRouter API key (Enter to skip and use /connect later)"
-        key_saved    = "✓ API key saved"
-        key_skip     = "==> No key — use /connect → LatinRouter inside OpenCode"
-        models_ok    = "✓ Models found: {0} (default: {1})"
-        models_fail  = "WARNING: could not list /v1/models"
-        next_title   = "Next steps:"
-        next_1       = "  1. Get a key at {0}"
-        next_2       = "  2. Run:  opencode"
-        next_3       = "  3. /connect → LatinRouter → paste your API key"
-        next_4       = "  4. /models → pick a model"
+        banner         = "==> LatinRouter + OpenCode (Windows)"
+        home           = "    Config: {0}"
+        no_oc          = "==> OpenCode not found — installing…"
+        oc_ok          = "✓ OpenCode installed"
+        oc_path_err    = "ERROR: 'opencode' is not on PATH. Open a new PowerShell and re-run."
+        checking       = "==> Checking OpenCode updates…"
+        update_prompt  = "OpenCode is outdated ({0} → {1}). Update now? [Y/n]"
+        updating       = "==> Updating OpenCode…"
+        updated        = "✓ OpenCode updated"
+        update_fail    = "WARNING: opencode upgrade failed — continuing with LatinRouter"
+        skip_update    = "==> Skipping OpenCode update"
+        no_tty_update  = "==> No interactive terminal; skipping OpenCode update"
+        install_prov   = "==> Installing LatinRouter provider"
+        plugin_ok      = "✓ Plugin installed → {0}"
+        config_ok      = "✓ Config updated → {0}"
+        key_prompt     = "LatinRouter API key (Enter to skip and use /connect later)"
+        key_saved      = "✓ API key saved"
+        key_skip       = "==> No key — use /connect → LatinRouter inside OpenCode"
+        models_ok      = "✓ Models found: {0} (default: {1})"
+        models_fail    = "WARNING: could not list /v1/models"
+        next_title     = "Next steps:"
+        next_1         = "  1. Get a key at {0}"
+        next_2         = "  2. Run:  opencode"
+        next_3         = "  3. /connect → LatinRouter → paste your API key"
+        next_4         = "  4. /models → pick a model"
     }
     $map = if ($script:Lang -eq "es") { $es } else { $en }
     $fmt = $map[$Key]
@@ -98,6 +115,76 @@ function Get-OpenCodeStateDir {
 
 function Test-OpenCodeAvailable {
     return [bool](Get-Command opencode -ErrorAction SilentlyContinue)
+}
+
+function Get-OpenCodeVersion {
+    try {
+        $raw = (& opencode -v 2>$null | Out-String).Trim()
+        if (-not $raw) { $raw = (& opencode --version 2>$null | Out-String).Trim() }
+        if ($raw -match '(\d+(?:\.\d+)+)') { return $Matches[1] }
+    } catch {}
+    return $null
+}
+
+function Get-LatestOpenCodeVersion {
+    try {
+        $headers = @{ "User-Agent" = "latinrouter-opencode-installer" }
+        $resp = Invoke-RestMethod -Uri $ReleasesApi -Headers $headers -TimeoutSec 12
+        $tag = [string]$resp.tag_name
+        if ($tag -match '(\d+(?:\.\d+)+)') { return $Matches[1] }
+    } catch {}
+    return $null
+}
+
+function ConvertTo-VersionTuple {
+    param([string]$Version)
+    $parts = @()
+    foreach ($p in ($Version -split '\.')) {
+        $n = 0
+        [void][int]::TryParse($p, [ref]$n)
+        $parts += $n
+    }
+    while ($parts.Count -lt 3) { $parts += 0 }
+    return ,$parts
+}
+
+function Test-OpenCodeUpdateAvailable {
+    $current = Get-OpenCodeVersion
+    $latest = Get-LatestOpenCodeVersion
+    if (-not $current -or -not $latest) { return $null }
+    if ($current -eq $latest) { return $null }
+    $c = ConvertTo-VersionTuple $current
+    $l = ConvertTo-VersionTuple $latest
+    for ($i = 0; $i -lt 3; $i++) {
+        if ($c[$i] -lt $l[$i]) {
+            return @{ Current = $current; Latest = $latest }
+        }
+        if ($c[$i] -gt $l[$i]) { return $null }
+    }
+    return $null
+}
+
+function Confirm-UpdateOpenCode {
+    param([string]$Current, [string]$Latest)
+    if ($env:LATINROUTER_SKIP_OPENCODE_UPDATE -eq "1") { return $false }
+    try {
+        $reply = Read-Host (Get-Msg update_prompt -Args @($Current, $Latest))
+    } catch {
+        Write-Host (Get-Msg no_tty_update)
+        return $false
+    }
+    if ([string]::IsNullOrWhiteSpace($reply)) { return $true }
+    return ($reply.Trim() -notmatch '^(n|no)$')
+}
+
+function Update-OpenCode {
+    Write-Host (Get-Msg updating)
+    try {
+        & opencode upgrade
+        Write-Host (Get-Msg updated)
+    } catch {
+        Write-Host (Get-Msg update_fail)
+    }
 }
 
 function Install-OpenCodeOfficial {
@@ -278,6 +365,16 @@ Write-Host (Get-Msg home -Args @($ConfigDir))
 
 if (-not (Test-OpenCodeAvailable)) {
     Install-OpenCodeOfficial
+} else {
+    Write-Host (Get-Msg checking)
+    $upd = Test-OpenCodeUpdateAvailable
+    if ($upd) {
+        if (Confirm-UpdateOpenCode -Current $upd.Current -Latest $upd.Latest) {
+            Update-OpenCode
+        } else {
+            Write-Host (Get-Msg skip_update)
+        }
+    }
 }
 
 Write-Host (Get-Msg install_prov)

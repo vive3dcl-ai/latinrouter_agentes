@@ -3,10 +3,12 @@
 #
 # Behavior:
 #   1. No OpenCode     → install from official opencode.ai installer
-#   2. Prompt API key  → optional; blank = configure later via /connect
-#   3. Drop plugin + merge ~/.config/opencode/opencode.json
+#   2. OpenCode outdated → ask to update (default: Yes), then install provider
+#   3. Prompt API key  → optional; blank = configure later via /connect
+#   4. Drop plugin + merge ~/.config/opencode/opencode.json
 #
 # Language: automatic from LANG/LC_* (es → Spanish, else English).
+# Skip update prompt: LATINROUTER_SKIP_OPENCODE_UPDATE=1
 #
 # Usage:
 #   bash opencode/install.sh
@@ -18,6 +20,7 @@ BASE_URL="https://llm.latinrouter.ai/v1"
 SIGNUP_URL="https://latinrouter.ai"
 DISPLAY_NAME="LatinRouter (Gateway IA Centralizado para Latinoamérica)"
 OFFICIAL_INSTALL_URL="https://opencode.ai/install"
+OPENCODE_RELEASES_API="https://api.github.com/repos/anomalyco/opencode/releases/latest"
 
 # ---------------------------------------------------------------------------
 # i18n
@@ -44,6 +47,13 @@ msg() {
         no_oc)         text="==> OpenCode no encontrado — instalando desde el instalador oficial" ;;
         oc_ok)         text="✓ OpenCode instalado" ;;
         oc_path_err)   text="ERROR: OpenCode instalado pero 'opencode' no está en el PATH. Abre una terminal nueva y re-ejecuta." ;;
+        checking)      text="==> Comprobando actualizaciones de OpenCode…" ;;
+        update_prompt) text="OpenCode está desactualizado (%s → %s). ¿Actualizar ahora? [S/n] " ;;
+        updating)      text="==> Actualizando OpenCode…" ;;
+        updated)       text="✓ OpenCode actualizado" ;;
+        update_fail)   text="ADVERTENCIA: falló 'opencode upgrade' — se continúa con LatinRouter" ;;
+        skip_update)   text="==> Se omite la actualización de OpenCode" ;;
+        no_tty_update) text="==> No hay terminal interactiva; se omite la actualización de OpenCode" ;;
         install_prov)  text="==> Instalando proveedor LatinRouter" ;;
         plugin_ok)     text="✓ Plugin instalado → %s" ;;
         config_ok)     text="✓ Config actualizada → %s" ;;
@@ -67,6 +77,13 @@ msg() {
         no_oc)         text="==> OpenCode not found — installing from official installer" ;;
         oc_ok)         text="✓ OpenCode installed" ;;
         oc_path_err)   text="ERROR: OpenCode installed but 'opencode' is not on PATH. Open a new terminal and re-run." ;;
+        checking)      text="==> Checking OpenCode updates…" ;;
+        update_prompt) text="OpenCode is outdated (%s → %s). Update now? [Y/n] " ;;
+        updating)      text="==> Updating OpenCode…" ;;
+        updated)       text="✓ OpenCode updated" ;;
+        update_fail)   text="WARNING: opencode upgrade failed — continuing with LatinRouter" ;;
+        skip_update)   text="==> Skipping OpenCode update" ;;
+        no_tty_update) text="==> No interactive terminal; skipping OpenCode update" ;;
         install_prov)  text="==> Installing LatinRouter provider" ;;
         plugin_ok)     text="✓ Plugin installed → %s" ;;
         config_ok)     text="✓ Config updated → %s" ;;
@@ -124,13 +141,87 @@ AUTH_FILE="$DATA_DIR/auth.json"
 MODEL_STATE="$STATE_DIR/model.json"
 
 refresh_path() {
-  export PATH="${HOME}/.local/bin:/usr/local/bin:${PATH}"
+  export PATH="${HOME}/.opencode/bin:${HOME}/.local/bin:/usr/local/bin:${PATH}"
   hash -r 2>/dev/null || true
 }
 
 opencode_available() {
   refresh_path
   command -v opencode >/dev/null 2>&1
+}
+
+opencode_version() {
+  # Prints current version (e.g. 1.18.3) or empty
+  local raw
+  raw="$(opencode -v 2>/dev/null || opencode --version 2>/dev/null || true)"
+  printf '%s' "$raw" | tr -d '[:space:]' | sed -E 's/^v//' | grep -Eo '[0-9]+(\.[0-9]+)+' | head -1
+}
+
+latest_opencode_version() {
+  # GitHub latest release tag → bare version
+  local tag
+  tag="$(curl -fsSL "$OPENCODE_RELEASES_API" 2>/dev/null \
+    | python3 -c 'import sys,json; print(json.load(sys.stdin).get("tag_name",""))' 2>/dev/null || true)"
+  printf '%s' "$tag" | tr -d '[:space:]' | sed -E 's/^v//' | grep -Eo '[0-9]+(\.[0-9]+)+' | head -1
+}
+
+# Returns 0 if update available (prints current and latest on stdout as two lines)
+opencode_update_available() {
+  local current latest
+  current="$(opencode_version)"
+  latest="$(latest_opencode_version)"
+  if [[ -z "$current" || -z "$latest" ]]; then
+    return 1
+  fi
+  if [[ "$current" == "$latest" ]]; then
+    return 1
+  fi
+  python3 - "$current" "$latest" <<'PY' >/dev/null 2>&1 || return 1
+import sys
+def parse(v):
+    parts = []
+    for p in v.split("."):
+        try:
+            parts.append(int(p))
+        except ValueError:
+            parts.append(0)
+    return tuple(parts)
+cur, lat = sys.argv[1], sys.argv[2]
+sys.exit(0 if parse(cur) < parse(lat) else 1)
+PY
+  printf '%s\n%s\n' "$current" "$latest"
+  return 0
+}
+
+prompt_update_opencode() {
+  local current="$1" latest="$2" reply=""
+  if [[ "${LATINROUTER_SKIP_OPENCODE_UPDATE:-}" == "1" ]]; then
+    return 1
+  fi
+  if { true >/dev/tty; } 2>/dev/null; then
+    printf '%s' "$(msg update_prompt "$current" "$latest")" > /dev/tty
+    IFS= read -r reply < /dev/tty || true
+  elif [[ -t 0 && -t 1 ]]; then
+    read -r -p "$(msg update_prompt "$current" "$latest")" reply || true
+  else
+    echo "$(msg no_tty_update)"
+    return 1
+  fi
+  reply="$(printf '%s' "$reply" | tr -d '[:space:]')"
+  case "$reply" in
+    n|N|no|NO) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+update_opencode() {
+  echo "$(msg updating)"
+  if opencode upgrade; then
+    refresh_path
+    echo "$(msg updated)"
+  else
+    echo "$(msg update_fail)"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -261,7 +352,7 @@ PY
 
 prompt_api_key() {
   local reply=""
-  if [[ -r /dev/tty && -w /dev/tty ]]; then
+  if { true >/dev/tty; } 2>/dev/null; then
     printf '%s' "$(msg key_prompt)" > /dev/tty
     IFS= read -r reply < /dev/tty || true
   elif [[ -t 0 && -t 1 ]]; then
@@ -288,6 +379,21 @@ if ! opencode_available; then
     exit 1
   fi
   echo "$(msg oc_ok)"
+else
+  echo "$(msg checking)"
+  set +e
+  update_info="$(opencode_update_available)"
+  update_status=$?
+  set -e
+  if [[ "$update_status" -eq 0 && -n "$update_info" ]]; then
+    cur_ver="$(printf '%s\n' "$update_info" | sed -n '1p')"
+    lat_ver="$(printf '%s\n' "$update_info" | sed -n '2p')"
+    if prompt_update_opencode "$cur_ver" "$lat_ver"; then
+      update_opencode
+    else
+      echo "$(msg skip_update)"
+    fi
+  fi
 fi
 
 echo "$(msg install_prov)"
