@@ -181,8 +181,6 @@ HERMES_HOME defaults:
 from __future__ import annotations
 
 import sys
-import threading
-import time
 from typing import Any
 
 from providers import register_provider
@@ -249,13 +247,16 @@ class _PreferLatinRouterList(list):
         self._promote()
         return list.__getitem__(self, index)
 
+    def __len__(self):  # type: ignore[override]
+        self._promote()
+        return list.__len__(self)
+
     def copy(self):  # type: ignore[override]
         self._promote()
         return list(self)
 
 
 def _wrap_canonical_providers() -> bool:
-    """Replace CANONICAL_PROVIDERS with a list that always promotes LatinRouter."""
     mod = sys.modules.get("hermes_cli.models")
     if mod is None:
         return False
@@ -269,7 +270,6 @@ def _wrap_canonical_providers() -> bool:
 
 
 def _patch_group_providers() -> bool:
-    """Also force latinrouter-first when Hermes builds picker rows."""
     mod = sys.modules.get("hermes_cli.models")
     if mod is None:
         return False
@@ -297,32 +297,69 @@ def _patch_group_providers() -> bool:
     return True
 
 
-def _prefer_latinrouter_first() -> None:
-    # Wrap the list immediately (exists before auto-extend finishes).
-    _wrap_canonical_providers()
-
-    if _patch_group_providers():
-        return
-
-    def _poll() -> None:
-        for _ in range(400):
-            try:
-                _wrap_canonical_providers()
-                if _patch_group_providers():
-                    return
-            except Exception:
-                return
-            time.sleep(0.005)
-
+def _apply_picker_hooks() -> None:
+    """Best-effort: wrap list + patch group_providers if models is loaded."""
     try:
-        threading.Thread(
-            target=_poll, name="latinrouter-prefer-first", daemon=True
-        ).start()
+        _wrap_canonical_providers()
+        _patch_group_providers()
     except Exception:
         pass
 
 
-_prefer_latinrouter_first()
+def _patch_provider_discovery() -> None:
+    """Re-apply hooks whenever Hermes discovers/lists providers.
+
+    Discovery often runs *before* ``hermes_cli.models`` is imported. In that
+    case a one-shot wrap fails. Patching ``list_providers`` / 
+    ``get_provider_profile`` re-runs the wrap when models later calls them
+    during CANONICAL_PROVIDERS auto-extend — which is exactly when we need it.
+    """
+    import providers as providers_mod
+
+    if getattr(providers_mod, "_latinrouter_discovery_patched", False):
+        _apply_picker_hooks()
+        return
+
+    orig_list = providers_mod.list_providers
+    orig_get = providers_mod.get_provider_profile
+
+    def list_providers(*args, **kwargs):  # type: ignore[no-untyped-def]
+        result = orig_list(*args, **kwargs)
+        _apply_picker_hooks()
+        return result
+
+    def get_provider_profile(*args, **kwargs):  # type: ignore[no-untyped-def]
+        result = orig_get(*args, **kwargs)
+        _apply_picker_hooks()
+        return result
+
+    providers_mod.list_providers = list_providers  # type: ignore[assignment]
+    providers_mod.get_provider_profile = get_provider_profile  # type: ignore[assignment]
+    providers_mod._latinrouter_discovery_patched = True  # type: ignore[attr-defined]
+    _apply_picker_hooks()
+
+
+# Also catch late imports of hermes_cli.models (after discovery already ran).
+class _ModelsImportHook:
+    def find_spec(self, fullname, path, target=None):  # noqa: ANN001
+        if fullname == "hermes_cli.models":
+            # Defer hook install until after the real loader finishes.
+            existing = sys.modules.get(fullname)
+            if existing is not None and getattr(existing, "group_providers", None):
+                _apply_picker_hooks()
+        return None
+
+
+def _install_import_hook() -> None:
+    for finder in sys.meta_path:
+        if isinstance(finder, _ModelsImportHook):
+            return
+    sys.meta_path.insert(0, _ModelsImportHook())
+
+
+_patch_provider_discovery()
+_install_import_hook()
+_apply_picker_hooks()
 PY
 
   cat >"$dest/plugin.yaml" <<'YAML'
