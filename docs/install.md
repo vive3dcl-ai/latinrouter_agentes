@@ -81,21 +81,38 @@ Docs: [hermes.md](hermes.md)
 
 ## OpenCode
 
-Instala (si hace falta) OpenCode desde el oficial y registra **LatinRouter** como proveedor (plugin + config).
+Instala (o actualiza si hace falta) [OpenCode](https://opencode.ai) desde el oficial y registra **LatinRouter** como proveedor (plugin + `opencode.json`).
 
 | Situación | Comportamiento |
 |-----------|----------------|
 | Sin OpenCode | Instala OpenCode oficial automáticamente |
 | OpenCode desactualizado | Pregunta si actualizar (Enter = Sí) |
-| OpenCode al día | Solo instala el proveedor LatinRouter |
+| OpenCode al día | Solo instala/actualiza el proveedor LatinRouter |
 | API key | Pregunta interactiva (Enter = omitir → `/connect` después) |
 | Idioma | Automático según la consola (es / en) |
+| Lista `/connect` | LatinRouter **primero** en **Providers** (Popular requiere PR upstream) |
 
-### Linux / macOS / WSL2
+### Linux
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.sh | bash
 ```
+
+Funciona en distros comunes (Ubuntu, Debian, Fedora, Arch, etc.) con `bash` y `curl`.
+
+### macOS
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.sh | bash
+```
+
+### WSL2 (Windows Subsystem for Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.sh | bash
+```
+
+Usa el home de Linux (`~/.config/opencode`), no el de Windows nativo.
 
 ### Windows nativo (PowerShell)
 
@@ -103,27 +120,39 @@ curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/mai
 iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.ps1)
 ```
 
-Config: `%USERPROFILE%\.config\opencode\`
+Config: `%USERPROFILE%\.config\opencode\`  
+Si no hay OpenCode: intenta scoop → npm → choco.
 
 ### Desde un clone local
 
 ```bash
+# Linux / macOS / WSL2
 bash opencode/install.sh
 ```
 
 ```powershell
+# Windows nativo
 powershell -ExecutionPolicy Bypass -File opencode\install.ps1
 ```
+
+### Qué escribe el instalador
+
+| Archivo | Contenido |
+|---------|-----------|
+| `plugins/latinrouter.js` | Plugin (`auth` + seed de modelos) |
+| `opencode.json` | Provider `latinrouter` + `models` (obligatorio para salir en `/connect`) |
+| `auth.json` | API key si la pegaste en el prompt |
+| `model.json` | Modelo reciente/default si hubo key y `/v1/models` OK |
 
 ### Después de instalar (OpenCode)
 
 ```bash
 opencode
-# /connect → LatinRouter → API key   (si no la diste en el instalador)
+# /connect → LatinRouter (arriba en Providers) → API key   (si no la diste en el instalador)
 # /models  → elegir modelo del gateway
 ```
 
-Docs: [opencode.md](opencode.md)
+Reinicia OpenCode si ya estaba abierto para que cargue el plugin nuevo.
 
 ### Opciones útiles (OpenCode)
 
@@ -131,6 +160,8 @@ Docs: [opencode.md](opencode.md)
 # No preguntar por actualizar OpenCode
 LATINROUTER_SKIP_OPENCODE_UPDATE=1 bash opencode/install.sh
 ```
+
+Docs: [opencode.md](opencode.md)
 
 ---
 

@@ -6,23 +6,23 @@ Compatible con **Linux, macOS y Windows** (nativo y WSL2).
 
 ## Listado automático de modelos
 
-Sí: el plugin llama a:
+Sí: con API key (auth o `LATINROUTER_API_KEY`), el plugin hace:
 
 ```text
 GET https://llm.latinrouter.ai/v1/models
 Authorization: Bearer <LATINROUTER_API_KEY>
 ```
 
-vía el hook `provider.models`. El catálogo viene del gateway; no hay lista estática en el plugin.
+vía el hook `config` (inyecta `provider.latinrouter.models`). OpenCode **borra** providers sin modelos del catálogo `/connect`, por eso el instalador/plugin siempre siembra al menos un modelo.
 
 ## Por qué un plugin (y no solo config)
 
-OpenCode lista proveedores nativos desde [models.dev](https://models.dev) o desde un **plugin con hook `auth`**. Un endpoint OpenAI-compatible no aparece solo en `/connect` ni lista modelos sin:
+OpenCode lista en `/connect` el catálogo [models.dev](https://models.dev) ∪ providers conectados/configurados **con modelos**. Un endpoint OpenAI-compatible no aparece solo:
 
-1. Plugin local en `~/.config/opencode/plugins/` con `auth` + `provider.models`
-2. Entrada en `opencode.json` con `@ai-sdk/openai-compatible` y `baseURL`
+1. Plugin en `~/.config/opencode/plugins/` con `auth` (label de API key) + hook `config` (seed/modelos live)
+2. Entrada en `opencode.json` con `@ai-sdk/openai-compatible`, `baseURL` y `models`
 
-Así LatinRouter aparece **nombrado** en `/connect` (hint `plugin`), no como “Other”.
+Así LatinRouter aparece **nombrado** en `/connect` → sección **Providers** (primero), no como “Other”.
 
 ## Requisitos
 
@@ -35,9 +35,18 @@ Así LatinRouter aparece **nombrado** en `/connect` (hint `plugin`), no como “
 |-----------|----------|
 | OpenCode no instalado | Instala desde el oficial (`opencode.ai/install` en Unix; scoop/npm/choco en Windows) |
 | OpenCode desactualizado | Pregunta: *¿Actualizar ahora? [S/n]* — Enter = **Sí**. Sin TTY, omite la actualización |
-| OpenCode al día | Solo instala el proveedor LatinRouter |
+| OpenCode al día | Solo instala/actualiza el proveedor LatinRouter |
 | API key | Pregunta interactiva; Enter vacío = configurar después con `/connect` |
 | Idioma | Automático (es / en) según locale / UI culture |
+
+Pasos concretos del script (`install.sh` / `install.ps1`):
+
+1. Resolver dirs (XDG / `%USERPROFILE%\.config\opencode`, etc.)
+2. Asegurar OpenCode instalado (+ prompt de upgrade si aplica)
+3. Copiar plugin → `plugins/latinrouter.js`
+4. Merge `opencode.json` (provider + `models`; default `model` si hay key)
+5. Prompt key → `auth.json` + `GET /v1/models` + state
+6. Imprimir siguientes pasos
 
 Para no actualizar OpenCode aunque haya versión nueva: `LATINROUTER_SKIP_OPENCODE_UPDATE=1`.
 
@@ -94,7 +103,7 @@ powershell -ExecutionPolicy Bypass -File opencode\install.ps1
 opencode
 ```
 
-1. Si no pegaste la key en el instalador: `/connect` → **LatinRouter** → pega la API key
+1. Si no pegaste la key en el instalador: `/connect` → **LatinRouter** (arriba en **Providers**) → pega la API key
 2. `/models` → elige un modelo del gateway
 3. Si el instalador recibió la key, el chat ya puede arrancar con `latinrouter/<modelo>` por defecto
 

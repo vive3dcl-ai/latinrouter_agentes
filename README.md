@@ -48,9 +48,9 @@ curl -fsSL https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/mai
 iex (irm https://raw.githubusercontent.com/vive3dcl-ai/latinrouter_agentes/main/opencode/install.ps1)
 ```
 
-Luego: `opencode` → `/connect` → LatinRouter → API key → `/models`
+Luego: `opencode` → `/connect` → LatinRouter (**primero** en Providers) → API key → `/models`
 
-Detalle: [docs/opencode.md](docs/opencode.md) · Key: [latinrouter.ai](https://latinrouter.ai)
+Detalle: [docs/opencode.md](docs/opencode.md) · Instaladores: [docs/install.md](docs/install.md#opencode) · Key: [latinrouter.ai](https://latinrouter.ai)
 
 
 ## Gateway
